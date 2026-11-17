@@ -15,11 +15,12 @@ codex plugin add hacker-news@hacker-news-codex-plugin
 
 설치 후 왼쪽 **…** 메뉴에서 **Hacker News**를 열고 사이드바에 고정할 수 있습니다. [피드 직접 열기](codex://plugins/hacker-news@hacker-news-codex-plugin/app/open_reader)
 
-업데이트할 때는 설치 스크립트를 다시 실행하거나 다음 명령으로 최신 버전을 반영하세요.
+업데이트하려면 Codex의 **플러그인 → 관리 → 마켓플레이스**에서 **Hacker News** 행의 **업그레이드**를 누르세요. Codex가 GitHub의 `main`을 가져와 설치된 플러그인에도 새 버전을 적용합니다. 리더가 열려 있었다면 닫았다가 다시 열어 새 화면을 확인하세요.
+
+터미널에서도 같은 업데이트를 실행할 수 있습니다.
 
 ```sh
 codex plugin marketplace upgrade hacker-news-codex-plugin
-codex plugin add hacker-news@hacker-news-codex-plugin
 ```
 
 기존 로컬 마켓플레이스에서 전환하는 경우, GitHub 마켓플레이스 등록 후 아래 명령으로 이전 설치를 해제하고 새 출처에서 설치하세요.
