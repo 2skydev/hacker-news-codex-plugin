@@ -1,0 +1,22 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "hacker-news",
+  "version": "0.3.7",
+  "description": "개인 ChatGPT 구독을 연결해 Hacker News 인기 글, 새 글과 댓글을 한국어로 읽습니다.",
+  "extensions": {
+    "com.openai": {
+      "onboardingSkill": "./skills/setup/SKILL.md",
+      "interface": {
+        "displayName": "Hacker News",
+        "shortDescription": "ChatGPT 구독으로 읽는 한국어 Hacker News",
+        "category": "Developer Tools",
+        "logo": "./assets/plugin-logo.svg",
+        "logoDark": "./assets/plugin-logo.svg",
+        "composerIconDark": "./assets/plugin-logo.svg",
+        "composerIcon": "./assets/plugin-logo.svg",
+        "brandColor": "#FF6600",
+        "capabilities": ["Interactive"]
+      }
+    }
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+  "mcpServers": {
+    "hacker-news": {
+      "type": "stdio",
+      "command": "./bin/start.sh",
+      "cwd": "${PLUGIN_ROOT}"
+    }
+  }
+}

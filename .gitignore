@@ -1,0 +1,9 @@
+node_modules/
+dist/*
+!dist/hacker-news/
+.DS_Store
+.env
+.env.*
+*.sqlite*
+*.pem
+*.key

@@ -1,0 +1,27 @@
+{
+  "name": "hacker-news",
+  "version": "0.3.7",
+  "private": true,
+  "type": "module",
+  "description": "ChatGPT 구독으로 번역하는 Codex용 Hacker News 리더",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "node --test",
+    "install:codex": "sh \"해커뉴스 설치.command\"",
+    "pretest": "npm run build"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/ext-apps": "^1.7.5",
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "@modelcontextprotocol/server": "^2.4.0",
+    "jose": "^6.1.0",
+    "proper-lockfile": "^4.1.2",
+    "zod": "^4.2.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
+  }
+}

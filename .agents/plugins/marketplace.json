@@ -1,0 +1,12 @@
+{
+  "name": "hacker-news-codex-plugin",
+  "interface": { "displayName": "Hacker News" },
+  "plugins": [
+    {
+      "name": "hacker-news",
+      "source": { "source": "local", "path": "./dist/hacker-news" },
+      "policy": { "installation": "AVAILABLE", "authentication": "ON_USE" },
+      "category": "Developer Tools"
+    }
+  ]
+}
