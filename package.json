@@ -10,7 +10,6 @@
   "scripts": {
     "build": "node scripts/build.mjs",
     "test": "node --test",
-    "install:codex": "sh \"해커뉴스 설치.command\"",
     "pretest": "npm run build"
   },
   "dependencies": {

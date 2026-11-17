@@ -4,32 +4,16 @@ Codex 데스크톱 왼쪽 사이드바에서 Hacker News 인기 글과 최신 �
 
 ## 설치
 
-이 비공개 저장소의 `main` 브랜치를 Codex 플러그인 마켓플레이스로 등록합니다. 설치할 Mac에서 Git이 이 저장소를 읽을 수 있어야 합니다.
+이 저장소는 비공개입니다. 설치할 Mac의 Git에 저장소 읽기 권한이 있는 GitHub 계정이 연결되어 있어야 합니다.
 
-Mac에서는 저장소의 **해커뉴스 설치.command**를 내려받아 `sh "해커뉴스 설치.command"`로 실행하면 데스크톱 앱에 포함된 Codex로 마켓플레이스 등록과 설치를 진행합니다. 터미널에서 같은 작업을 하려면 다음 명령을 실행하세요.
+1. Codex 앱의 **플러그인** 화면에서 **추가 → 마켓플레이스 추가**를 선택합니다.
+2. **출처**에 `https://github.com/2skydev/hacker-news-codex-plugin.git`을 붙여넣고 **Git ref**에 `main`을 입력합니다. **Sparse 경로**는 비워 둡니다.
+3. **마켓플레이스 추가**를 누른 뒤 플러그인 목록에서 **Hacker News**를 열고 **설치**를 누릅니다.
+4. 왼쪽 **…** 메뉴에서 **Hacker News**를 엽니다. 자주 사용한다면 사이드바에 고정할 수 있습니다. [피드 직접 열기](codex://plugins/hacker-news@hacker-news-codex-plugin/app/open_reader)
 
-```sh
-codex plugin marketplace add https://github.com/2skydev/hacker-news-codex-plugin.git --ref main
-codex plugin add hacker-news@hacker-news-codex-plugin
-```
+## 업데이트
 
-설치 후 왼쪽 **…** 메뉴에서 **Hacker News**를 열고 사이드바에 고정할 수 있습니다. [피드 직접 열기](codex://plugins/hacker-news@hacker-news-codex-plugin/app/open_reader)
-
-업데이트하려면 Codex의 **플러그인 → 관리 → 마켓플레이스**에서 **Hacker News** 행의 **업그레이드**를 누르세요. Codex가 GitHub의 `main`을 가져와 설치된 플러그인에도 새 버전을 적용합니다. 리더가 열려 있었다면 닫았다가 다시 열어 새 화면을 확인하세요.
-
-터미널에서도 같은 업데이트를 실행할 수 있습니다.
-
-```sh
-codex plugin marketplace upgrade hacker-news-codex-plugin
-```
-
-기존 로컬 마켓플레이스에서 전환하는 경우, GitHub 마켓플레이스 등록 후 아래 명령으로 이전 설치를 해제하고 새 출처에서 설치하세요.
-
-```sh
-codex plugin remove hacker-news@hacker-news-local
-codex plugin marketplace remove hacker-news-local
-codex plugin add hacker-news@hacker-news-codex-plugin
-```
+Codex 앱의 **플러그인 → 관리 → 마켓플레이스**에서 **Hacker News** 행의 **업그레이드**를 누릅니다. Codex가 GitHub의 `main`을 가져와 설치된 플러그인에 새 버전을 적용합니다. 리더가 열려 있었다면 닫았다가 다시 엽니다.
 
 ## 사용
 
