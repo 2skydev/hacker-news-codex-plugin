@@ -1,30 +1,24 @@
-import { cp, mkdir, readFile, writeFile } from "node:fs/promises";
+import { cp, mkdir, rename } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { build } from "esbuild";
+import { build as buildReader } from "vite";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 const output = path.join(root, "dist/hacker-news");
+const devkit = path.dirname(fileURLToPath(import.meta.resolve("sign-in-with-chatgpt/package.json")));
 await mkdir(output, { recursive: true });
 
-const [template, css, app] = await Promise.all([
-  readFile(path.join(root, "ui/index.html"), "utf8"),
-  readFile(path.join(root, "ui/style.css"), "utf8"),
-  build({
-    absWorkingDir: root,
-    entryPoints: ["ui/app.js"],
-    bundle: true,
-    minify: true,
-    format: "iife",
-    platform: "browser",
-    target: "es2022",
-    write: false,
-  }),
-]);
-const html = template.replace("/*__APP_CSS__*/", () => css)
-  .replace("/*__APP_JS__*/", () => app.outputFiles[0].text.replace(/<\/script/gi, "<\\/script"));
+await buildReader({ configFile: path.join(root, "vite.config.mjs") });
+await rename(path.join(output, "index.html"), path.join(output, "reader.html"));
+
+const notices = path.join(output, "licenses");
+await mkdir(notices, { recursive: true });
 await Promise.all([
-  writeFile(path.join(output, "reader.html"), html),
+  ...["LICENSE", "THIRD_PARTY_NOTICES.md", "assets/fonts/inter-OFL.txt", "assets/fonts/open-sans-OFL.txt"].map(file =>
+    cp(path.join(devkit, file), path.join(notices, path.basename(file)))),
+  ...["react", "react-dom", "scheduler", "openai"].map(pkg =>
+    cp(path.join(root, "node_modules", pkg, "LICENSE"), path.join(notices, pkg + "-LICENSE"))),
   cp(path.join(root, "skills"), path.join(output, "skills"), { recursive: true }),
   cp(path.join(root, "bin"), path.join(output, "bin"), { recursive: true }),
   cp(path.join(root, "assets"), path.join(output, "assets"), { recursive: true }),

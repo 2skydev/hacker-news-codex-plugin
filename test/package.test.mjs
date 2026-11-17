@@ -25,25 +25,28 @@ test("설치 패키지가 사이드바 화면과 로컬 도구를 제공한다",
   await client.connect(transport);
   t.after(() => client.close());
   const { tools } = await client.listTools();
-  const caps = client.getServerCapabilities().experimental["openai/settings"];
-  assert.equal(caps.readTool, "hn_settings_read");
-  const settings = await client.callTool({ name: caps.readTool, arguments: {} });
+  assert.equal(client.getServerCapabilities().experimental?.["openai/settings"], undefined);
+  assert.equal(client.getServerCapabilities().extensions?.["openai/settings"], undefined);
+  const settings = await client.callTool({ name: "hn_settings_read", arguments: {} });
   assert.deepEqual(settings.structuredContent.values, { model: "자동", realtime: true, cacheField: "모든 번역", cachePeriod: "전체 기간" });
-  const update = await client.callTool({ name: caps.updateTool, arguments: { set: { realtime: false } } });
+  const update = await client.callTool({ name: "hn_settings_update", arguments: { set: { realtime: false } } });
   assert.equal(update.structuredContent.values.realtime, false);
   assert.equal(tools.find(tool => tool.name === "hn_clear_cache").annotations.destructiveHint, true);
-  // Seed the temporary cache between host reads to verify the native settings actually change.
+  // Seed the temporary cache between host reads to verify the reader settings reflect changes.
   const db = new DatabaseSync(join(dataDir, "translations.sqlite"));
   db.prepare("INSERT INTO translations (id,field,fingerprint,ko,saved_at) VALUES (1,'title','a','뉴스',?)").run(Date.now());
   db.close();
-  const readSettings = async () => (await client.callTool({ name: caps.readTool, arguments: {} })).structuredContent;
-  assert.ok((await readSettings()).layout.some(group => group.title === "번역 캐시 1개 (6 B)"));
-  await client.callTool({ name: caps.updateTool, arguments: { set: { cacheField: "본문과 댓글" } } });
-  const clear = async () => (await client.callTool({ name: "hn_clear_cache", arguments: {} })).structuredContent;
+  const readSettings = async () => (await client.callTool({ name: "hn_settings_read", arguments: {} })).structuredContent;
+  assert.equal((await readSettings()).cacheSize, "1개 (6 B)");
+  await client.callTool({ name: "hn_settings_update", arguments: { set: { cacheField: "본문과 댓글" } } });
+  const clear = async () => {
+    const { cacheField, cachePeriod } = (await readSettings()).values;
+    return (await client.callTool({ name: "hn_clear_cache", arguments: { cacheField, cachePeriod } })).structuredContent;
+  };
   assert.equal((await clear()).removed, 0);
-  await client.callTool({ name: caps.updateTool, arguments: { set: { cacheField: "제목", cachePeriod: "최근 7일" } } });
+  await client.callTool({ name: "hn_settings_update", arguments: { set: { cacheField: "제목", cachePeriod: "최근 7일" } } });
   assert.equal((await clear()).removed, 1);
-  assert.ok((await readSettings()).layout.some(group => group.title === "번역 캐시 0개 (0 B)"));
+  assert.equal((await readSettings()).cacheSize, "0개 (0 B)");
   const manifest = JSON.parse(await readFile(join(root, "plugin.json"), "utf8"));
   const setup = await readFile(join(root, manifest.extensions["com.openai"].onboardingSkill), "utf8");
   assert.match(setup, /name: setup/);
@@ -51,13 +54,17 @@ test("설치 패키지가 사이드바 화면과 로컬 도구를 제공한다",
   assert.deepEqual(entry._meta["openai/ui"].entrypoints, [{ type: "global" }]);
   assert.deepEqual(entry.icons.map(icon => icon.theme), ["light", "dark"]);
   assert.equal(entry.title, "Hacker News");
-  for (const tool of ["hn_account", "hn_feed", "hn_watch", "hn_translate", "hn_story", "hn_connect", "hn_disconnect"]) {
+  for (const tool of ["hn_account", "hn_feed", "hn_watch", "hn_translate", "hn_story", "hn_connect", "hn_disconnect", "hn_settings_read", "hn_settings_update", "hn_clear_cache"]) {
     assert.deepEqual(tools.find(it => it.name === tool)._meta.ui.visibility, ["app"]);
   }
   const { contents } = await client.readResource({ uri: entry._meta.ui.resourceUri });
   assert.equal(contents[0].mimeType, "text/html;profile=mcp-app");
   assert.equal(contents[0]._meta["openai/ui"].preferredDisplayMode, "fullscreen");
-  assert.match(contents[0].text, /lang="ko"/);
+  assert.match(contents[0].text, /open-settings/);
+  assert.match(contents[0].text, /id="root"/);
+  assert.doesNotMatch(contents[0].text, /url\(["']?\.\/assets\//);
+  assert.doesNotMatch(contents[0].text, /<script[^>]+\bsrc=|<link[^>]+rel="stylesheet"/);
+  assert.doesNotMatch(contents[0].text, /id="notice"|id="message"|id="chatgpt-logo"/);
   assert.doesNotMatch(contents[0].text, /__APP_(?:JS|CSS)__/);
   assert.equal((await client.callTool({ name: "hn_account", arguments: {} })).structuredContent.connected, false);
   const login = await client.callTool({ name: "hn_connect", arguments: {} });

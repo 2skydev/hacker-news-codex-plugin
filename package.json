@@ -1,6 +1,6 @@
 {
   "name": "hacker-news",
-  "version": "0.3.7",
+  "version": "0.3.8",
   "private": true,
   "type": "module",
   "description": "ChatGPT 구독으로 번역하는 Codex용 Hacker News 리더",
@@ -8,7 +8,9 @@
     "node": ">=24"
   },
   "scripts": {
-    "build": "node scripts/build.mjs",
+    "dev": "vite",
+    "typecheck": "tsc --noEmit",
+    "build": "npm run typecheck && node scripts/build.mjs",
     "test": "node --test",
     "pretest": "npm run build"
   },
@@ -17,10 +19,22 @@
     "@modelcontextprotocol/sdk": "^1.32.2",
     "@modelcontextprotocol/server": "^2.4.0",
     "jose": "^6.1.0",
+    "openai": "^7.57.0",
     "proper-lockfile": "^4.1.2",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "sign-in-with-chatgpt": "https://codeload.github.com/openai/sign-in-with-chatgpt-devkit/tar.gz/0a36fefeb913055c8c7a1a29b63d82b96b2e841a",
     "zod": "^4.2.0"
   },
   "devDependencies": {
-    "esbuild": "^0.28.2"
+    "@types/node": "^24.19.2",
+    "@types/proper-lockfile": "^4.1.4",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.3.0",
+    "esbuild": "^0.28.2",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.8",
+    "vite-plugin-singlefile": "^2.3.4"
   }
 }

@@ -2,10 +2,10 @@ import { readFile } from "node:fs/promises";
 import { McpServer } from "@modelcontextprotocol/server";
 import { serveStdio } from "@modelcontextprotocol/server/stdio";
 import { z } from "zod";
-import { accountStatus, beginSignIn, listModels, signOut } from "./account.mjs";
+import { accountStatus, beginSignIn, listModels, signOut } from "./account.ts";
 import { feed, service, story, translate, watch } from "./news.mjs";
 
-const version = "0.3.7";
+const version = "0.3.8";
 const uri = "ui://hacker-news/reader-v1";
 const mimeType = "text/html;profile=mcp-app";
 const html = await readFile(new URL("./reader.html", import.meta.url), "utf8");
@@ -14,7 +14,6 @@ const icons = await Promise.all(["light", "dark"].map(async theme => {
   const image = await readFile(new URL("./assets/" + asset, import.meta.url), "base64");
   return { src: "data:image/svg+xml;base64," + image, mimeType: "image/svg+xml", sizes: ["any"], theme };
 }));
-const settingsCapability = { readTool: "hn_settings_read", updateTool: "hn_settings_update" };
 const fields = { "모든 번역": "all", "제목": "title", "본문과 댓글": "text" };
 const periods = { "전체 기간": 0, "최근 24시간": 1, "최근 7일": 7, "최근 30일": 30 };
 const settingsValues = z.object({
@@ -36,9 +35,7 @@ const page = {
 };
 
 serveStdio(() => {
-  const server = new McpServer({ name: "hacker-news", title: "Hacker News", version, icons }, {
-    capabilities: { experimental: { "openai/settings": settingsCapability }, extensions: { "openai/settings": settingsCapability } },
-  });
+  const server = new McpServer({ name: "hacker-news", title: "Hacker News", version, icons });
   server.registerResource("Hacker News", uri, { mimeType, _meta: viewMeta }, async () => ({
     contents: [{ uri, mimeType, text: html, _meta: viewMeta }],
   }));
@@ -78,23 +75,16 @@ serveStdio(() => {
     ids: z.array(id).min(1).max(50),
     field: z.enum(["title", "text"]),
   }, false, translate);
-  tool("hn_account", "ChatGPT 연결 상태", {}, true, async () => {
-    const { connected, pending, model, error } = await accountStatus();
-    return { connected, pending, model, error };
-  });
-  tool("hn_connect", "ChatGPT 연결", {}, false, () => beginSignIn());
-  tool("hn_disconnect", "ChatGPT 연결 해제", {}, false, async () => {
-    const result = await signOut();
-    return { connected: false, ...(result?.error ? { warning: result.error } : {}) };
-  });
+  tool("hn_account", "ChatGPT 연결 상태", {}, true, accountStatus);
+  tool("hn_connect", "ChatGPT 연결", {}, false, beginSignIn);
+  tool("hn_disconnect", "ChatGPT 연결 해제", {}, false, signOut);
   const preferences = () => service().preferences;
   tool("hn_preferences", "리더 설정 읽기", {}, true, () => preferences().values());
   server.registerTool("hn_clear_cache", {
-    title: "선택한 캐시 비우기", inputSchema: z.object({}), annotations: { readOnlyHint: false, destructiveHint: true },
+    title: "선택한 캐시 비우기", inputSchema: settingsValues.pick({ cacheField: true, cachePeriod: true }), annotations: { readOnlyHint: false, destructiveHint: true },
     _meta: { ui: uiOnly },
-  }, async () => {
+  }, async ({ cacheField, cachePeriod }) => {
     const db = preferences();
-    const { cacheField, cachePeriod } = db.values();
     const result = db.clear(fields[cacheField], periods[cachePeriod], Date.now());
     return { content: [{ type: "text", text: result.removed + "개 삭제했습니다. 남은 번역 " + cacheSize(result) }], structuredContent: result };
   });
@@ -104,29 +94,11 @@ serveStdio(() => {
     let models = [], modelError = "";
     try { models = await listModels(); }
     catch { modelError = "모델 목록을 가져오지 못했습니다. 설정을 다시 열어 주세요."; }
-    const account = await accountStatus();
-    const choices = [...new Set(["자동", ...models, values.model])];
     return {
-      schema: { type: "object", properties: {
-        model: { type: "string", title: "번역 모델", enum: choices,
-          description: modelError || (models.length ? "새 번역부터 적용합니다." : "ChatGPT를 연결하면 사용할 모델을 선택할 수 있습니다.") },
-        realtime: { type: "boolean", title: "실시간 갱신", description: "끄면 새 글과 순위 변경 안내를 눌러 반영합니다." },
-        cacheField: { type: "string", title: "삭제 대상", enum: Object.keys(fields) },
-        cachePeriod: { type: "string", title: "저장 기간", enum: Object.keys(periods) },
-      } },
-      values,
-      layout: [{ kind: "group", title: "리더 설정", items: [
-        { kind: "property", property: "model" }, { kind: "property", property: "realtime" },
-      ] }, { kind: "group", title: "번역 캐시 " + cacheSize(preferences().stats()), items: [
-        { kind: "property", property: "cacheField" }, { kind: "property", property: "cachePeriod" },
-        { kind: "tool", tool: "hn_clear_cache" },
-      ] }, { kind: "group", title: account.connected ? "ChatGPT 연결됨" : "ChatGPT 계정", items: [
-        account.connected || account.pending
-          ? { kind: "tool", tool: "hn_disconnect", description: "플랜 연결을 해제하거나 로그인을 취소합니다." }
-          : { kind: "tool", tool: "open_reader", description: "리더에서 ChatGPT로 계속하기를 눌러 연결합니다." },
-      ] }],
+      values, models: [...new Set(["자동", ...models, values.model])], modelError,
+      cacheFields: Object.keys(fields), cachePeriods: Object.keys(periods), cacheSize: cacheSize(preferences().stats()),
     };
-  }, z.object({ schema: z.record(z.string(), z.unknown()), values: settingsValues, layout: z.array(z.record(z.string(), z.unknown())) }));
+  });
   tool("hn_settings_update", "Hacker News 설정 저장", {
     set: settingsValues.partial().strict().refine(values => Object.keys(values).length > 0),
   }, false, async ({ set }) => {
