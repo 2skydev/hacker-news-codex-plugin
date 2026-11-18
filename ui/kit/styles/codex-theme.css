@@ -1,5 +1,5 @@
-@import 'tw-animate-css';
-@import 'shadcn/tailwind.css';
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -100,21 +100,9 @@
   --color-warning-outline: var(--warning-outline);
   --color-destructive-surface: var(--destructive-surface);
   --color-destructive-border: var(--destructive-border);
-  --color-destructive-subtle: color-mix(
-    in srgb,
-    var(--destructive) 10%,
-    transparent
-  );
-  --color-destructive-hover: color-mix(
-    in srgb,
-    var(--destructive) 18%,
-    transparent
-  );
-  --color-destructive-menu-hover: color-mix(
-    in srgb,
-    var(--destructive) 12%,
-    transparent
-  );
+  --color-destructive-subtle: color-mix(in srgb, var(--destructive) 10%, transparent);
+  --color-destructive-hover: color-mix(in srgb, var(--destructive) 18%, transparent);
+  --color-destructive-menu-hover: color-mix(in srgb, var(--destructive) 12%, transparent);
 
   /* 추가 항목: 입력과 선택 컨트롤 */
   --color-control-surface: var(--control-surface);

@@ -30,17 +30,21 @@ HN 공개 데이터는 공식 Firebase API에서 읽습니다. 현재 목록에 
 
 ```sh
 npm ci
-npm run typecheck
+npm run check
 npm test
 ```
 
 설치본의 데스크톱 등록 상태는 실제 앱에 포함된 실행 파일로 확인합니다.
 
 ```sh
-node scripts/check-desktop.mjs "/Applications/ChatGPT.app/Contents/Resources/codex-cli/bin/codex"
+node scripts/check-desktop.ts "/Applications/ChatGPT.app/Contents/Resources/codex-cli/bin/codex"
 ```
 
 Node.js 24 이상에서 `npm run dev`를 실행하고 터미널의 로컬 주소를 브라우저에서 열면 플러그인 설치 없이 실제 피드, 댓글, 설정과 ChatGPT 연결을 사용할 수 있습니다. 개발 서버는 저장소에 포함된 MCP 서버를 실행하며, 기본적으로 설치된 플러그인과 같은 `~/.local/share/hacker-news/`의 번역 캐시, 설정, 로그인 정보를 사용합니다.
+
+UI 페이지는 `ui/pages/`에, 피드와 토론, 설정의 구성 요소는 `ui/components/`에 있습니다. 화면 상태와 데이터 요청은 `ui/hooks/`에서 관리합니다. 서버는 `server/account/`와 `server/news/`로 나뉘며 `server/mcp/`가 각 기능을 리더 도구로 등록합니다. UI와 서버가 함께 쓰는 타입과 상수는 `shared/`에 있습니다.
+
+`npm run format`으로 Biome 포맷을 적용하고 `npm run lint`로 린트를 실행합니다. `npm run check`는 Biome 검사와 UI, 서버, 스크립트, 테스트의 TypeScript 타입 검사를 실행합니다.
 
 React와 TypeScript로 작성한 UI는 Vite가 변경 즉시 반영합니다. 서버 소스를 수정했다면 `npm run build` 후 개발 서버를 다시 시작하세요. `npm test`는 단일 HTML 리더와 설치 패키지를 빌드한 뒤 테스트합니다.
 

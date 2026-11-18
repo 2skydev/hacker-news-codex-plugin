@@ -1,7 +1,7 @@
-import { Button as ButtonPrimitive } from '@base-ui/react/button';
-import { cva, type VariantProps } from 'class-variance-authority';
+import { Button as ButtonPrimitive } from "@base-ui/react/button";
+import { cva, type VariantProps } from "class-variance-authority";
 
-import { cn } from '@/lib/utils';
+import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
   [
@@ -12,45 +12,44 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          'border-border bg-primary text-primary-foreground hover:bg-foreground/80 aria-expanded:bg-foreground/80 data-popup-open:bg-foreground/80',
+          "border-border bg-primary text-primary-foreground hover:bg-foreground/80 aria-expanded:bg-foreground/80 data-popup-open:bg-foreground/80",
         outline:
-          'border-border bg-control-soft text-foreground hover:bg-accent aria-expanded:bg-accent data-popup-open:bg-accent',
+          "border-border bg-control-soft text-foreground hover:bg-accent aria-expanded:bg-accent data-popup-open:bg-accent",
         secondary:
-          'bg-secondary text-secondary-foreground hover:bg-foreground/10 aria-expanded:bg-foreground/10 data-popup-open:bg-foreground/10',
+          "bg-secondary text-secondary-foreground hover:bg-foreground/10 aria-expanded:bg-foreground/10 data-popup-open:bg-foreground/10",
         ghost:
-          'bg-transparent text-foreground hover:bg-accent aria-expanded:bg-accent data-popup-open:bg-accent',
-        destructive:
-          'bg-destructive-subtle text-destructive hover:bg-destructive-hover',
-        link: 'bg-transparent text-foreground underline-offset-4 hover:underline',
+          "bg-transparent text-foreground hover:bg-accent aria-expanded:bg-accent data-popup-open:bg-accent",
+        destructive: "bg-destructive-subtle text-destructive hover:bg-destructive-hover",
+        link: "bg-transparent text-foreground underline-offset-4 hover:underline",
       },
       size: {
-        default: 'h-8 gap-1 px-4',
-        xs: 'h-6 gap-1 px-2 text-xs leading-4 font-base',
-        sm: 'h-7 gap-1 px-3 leading-5',
-        lg: 'h-9 gap-1 px-4',
-        icon: 'size-8 p-0',
-        'icon-xs': 'size-6 p-0',
-        'icon-sm': 'size-7 p-0',
-        'icon-lg': 'size-9 p-0',
+        default: "h-8 gap-1 px-4",
+        xs: "h-6 gap-1 px-2 text-xs leading-4 font-base",
+        sm: "h-7 gap-1 px-3 leading-5",
+        lg: "h-9 gap-1 px-4",
+        icon: "size-8 p-0",
+        "icon-xs": "size-6 p-0",
+        "icon-sm": "size-7 p-0",
+        "icon-lg": "size-9 p-0",
       },
       radius: {
-        default: 'rounded-lg',
-        full: 'rounded-full',
+        default: "rounded-lg",
+        full: "rounded-full",
       },
     },
     defaultVariants: {
-      variant: 'default',
-      size: 'default',
-      radius: 'default',
+      variant: "default",
+      size: "default",
+      radius: "default",
     },
   },
-)
+);
 
 function Button({
   className,
-  variant = 'default',
-  size = 'default',
-  radius = 'default',
+  variant = "default",
+  size = "default",
+  radius = "default",
   ...props
 }: ButtonPrimitive.Props & VariantProps<typeof buttonVariants>) {
   return (
@@ -62,7 +61,7 @@ function Button({
       className={cn(buttonVariants({ variant, size, radius, className }))}
       {...props}
     />
-  )
+  );
 }
 
-export { Button, buttonVariants }
+export { Button, buttonVariants };
