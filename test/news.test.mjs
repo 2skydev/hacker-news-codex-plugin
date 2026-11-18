@@ -187,8 +187,21 @@ test('기존 캐시의 저장일을 추정하지 않고 전체 기간에서만 �
   const prefs = openCache(dir);
   t.after(() => prefs.close());
   assert.equal(prefs.clear('all', 30, Date.now()).removed, 0);
+  assert.equal(prefs.clear('all', -30, Date.now()).removed, 0);
   assert.equal(prefs.read.get(1, 'title', 'old').ko, '이전 번역');
   assert.equal(prefs.clear('title', 0, Date.now()).removed, 1);
+});
+
+test('30일보다 오래된 캐시만 삭제하고 경계 시각과 다른 종류를 보존한다', t => {
+  const dir = mkdtempSync(join(tmpdir(), 'hn-cache-range-'));
+  const prefs = openCache(dir);
+  t.after(() => { prefs.close(); rmSync(dir, { recursive: true, force: true }); });
+  const now = Date.now(), cutoff = now - 30 * 86400000;
+  for (const [id, field, time] of [[1, 'title', cutoff - 1], [2, 'title', cutoff], [3, 'text', cutoff - 1]])
+    prefs.write.run(id, field, 'key', '번역', time, 0);
+  assert.equal(prefs.clear('title', -30, now).removed, 1);
+  assert.ok(prefs.read.get(2, 'title', 'key'));
+  assert.ok(prefs.read.get(3, 'text', 'key'));
 });
 
 test('재시작 뒤에도 원문 요청 없이 목록과 댓글의 현재 번역 캐시를 읽는다', async t => {

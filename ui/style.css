@@ -1,7 +1,7 @@
 @import "tailwindcss" source(".");
 @import "./kit/styles/codex-theme.css";
 
-:root { color-scheme: light; }
+:root { scrollbar-gutter: stable; color-scheme: light; }
 :root.dark { color-scheme: dark; }
 [hidden] { display: none !important; }
 body { overflow-wrap: anywhere; }
@@ -17,7 +17,7 @@ button:not(:disabled), summary { cursor: pointer; }
 .masthead-actions { justify-content: flex-end; flex-wrap: wrap; }
 #updated-at, .rank, .title-domain, .meta, .original, .empty, .list-status, #cache-size, .setting-description { color: var(--muted-foreground); }
 #updated-at, .meta, .rank, .title-domain { font-size: .75rem; }
-#updated-at, .rank, #translation-status { font-variant-numeric: tabular-nums; }
+#updated-at, .rank { font-variant-numeric: tabular-nums; }
 .bar { min-height: 48px; }
 .sort { display: inline-flex; gap: 2px; height: 28px; padding: 2px; border-radius: 10px; background: color-mix(in srgb, var(--underlay-background) 92%, transparent); }
 .sort button { border: 1px solid transparent; border-radius: var(--radius-md); padding: 2px 8px; font-size: .75rem; color: var(--muted-foreground); line-height: 1rem; }
@@ -48,47 +48,19 @@ summary { width: fit-content; font-size: .8125rem; margin-top: 6px; }
 .replies .comment:last-of-type { border-bottom: 0; }
 .replies .replies .replies .replies { padding-inline-start: 4px; }
 .original { display: block; margin-top: 4px; font-size: .8125rem; font-weight: 430; }
-#translation-status { display: flex; align-items: center; gap: 4px; color: var(--muted-foreground); font-size: .75rem; }
-@property --fill {
-  syntax: "<angle>";
-  inherits: false;
-  initial-value: 0turn;
-}
-@media (prefers-reduced-motion: no-preference) {
-  #translation-progress { transition: --fill 260ms ease-out; }
-}
-#translation-progress {
-  appearance: none; display: block; width: 18px; height: 18px; border: 0; border-radius: 50%;
-  --ring-fill: var(--foreground);
-  --ring-track: var(--border);
-  --ring-radius: 7.75px;
-  --cap: var(--ring-fill) 1px, transparent 1.65px;
-  --end-x: calc(50% + var(--ring-radius) * sin(var(--fill)));
-  --end-y: calc(50% - var(--ring-radius) * cos(var(--fill)));
-  background:
-    radial-gradient(circle at 50% calc(50% - var(--ring-radius)), var(--cap)),
-    radial-gradient(circle at var(--end-x) var(--end-y), var(--cap)),
-    conic-gradient(var(--ring-fill) var(--fill), var(--ring-track) 0);
-  mask-image: radial-gradient(circle closest-side, transparent calc(100% - 3px), black calc(100% - 2px));
-}
-#translation-progress[value="0"] { background: var(--ring-track); }
-#translation-progress::-webkit-progress-bar, #translation-progress::-webkit-progress-value { background: transparent; }
-#translation-progress::-moz-progress-bar { background: transparent; }
-@media (forced-colors: active) {
-  #translation-progress { forced-color-adjust: none; --ring-fill: Highlight; --ring-track: GrayText; }
-}
-
 #settings { max-width: 36rem; margin: 24px auto; }
 .settings-header { margin-bottom: 20px; }
-#settings fieldset { min-width: 0; margin-block: 20px; }
-#settings legend { padding-block: 4px; font-weight: 600; }
+#settings fieldset { min-width: 0; margin-block: 20px; padding: 4px 16px 12px; border: 1px solid var(--border); border-radius: var(--radius-xl); }
+#settings legend { padding: 0 6px; font-weight: 600; }
 .setting-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-block: 10px; }
 .setting-row + .setting-row { border-top: 1px solid var(--border); }
 .setting-description, .settings-link { font-size: .8125rem; }
 .settings-link { display: inline-flex; gap: 4px; }
-[data-slot="native-select-wrapper"] { max-width: 65%; }
+.account-summary { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.account-avatar { display: grid; place-items: center; width: 38px; height: 38px; flex: none; border-radius: 50%; overflow: hidden; background: var(--secondary); font-weight: 600; }
+.account-avatar img { width: 100%; height: 100%; object-fit: cover; }
+[data-slot="select-trigger"] { max-width: 65%; }
 @media (max-width: 440px) {
-  #translation-status + #updated-at { display: none; }
   .reader { padding-inline: max(12px, var(--safe-left, 0px)) max(12px, var(--safe-right, 0px)); }
   .setting-row { flex-wrap: wrap; }
 }

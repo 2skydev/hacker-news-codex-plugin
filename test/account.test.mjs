@@ -130,6 +130,19 @@ test('SDK에서 연결한 계정과 설치 ID를 암호화된 직접 API 저장�
   assert.doesNotMatch(await readFile(join(folder, 'accounts.json'), 'utf8'), /test-refresh|test-access|reader@example/)
 })
 
+test('연결한 계정의 사진만 반환하고 토큰 자체는 공개하지 않는다', async t => {
+  const f = await fixture(t)
+  await f.login()
+  const picture = 'https://cdn.openai.com/example.png'
+  const { privateKey } = await generateKeyPair('RS256')
+  const id = await new SignJWT({ sub: 'person', picture }).setProtectedHeader({ alg: 'RS256' }).sign(privateKey)
+  await f.store.exclusive(async (data, write) => { data.profiles[0].tokens.id = id; await write(data) })
+  const status = await f.service.accountStatus()
+  assert.equal(status.picture, picture)
+  assert.ok(!JSON.stringify(status).includes(id))
+  assert.equal((await f.service.signOut()).picture, undefined)
+})
+
 test('callback checks state and cancel prevents using pending registration', async t => {
   const f = await fixture(t)
   const callback = await f.begin()

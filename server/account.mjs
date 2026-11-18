@@ -1,6 +1,6 @@
 import { createHash, randomBytes, randomUUID } from 'node:crypto'
 import { createServer } from 'node:http'
-import { createRemoteJWKSet, jwtVerify } from 'jose'
+import { createRemoteJWKSet, decodeJwt, jwtVerify } from 'jose'
 import { accountStore } from './account-store.mjs'
 import { checkResponse, issue, translateTitles } from './account-inference.mjs'
 
@@ -20,6 +20,15 @@ const active = data => data.profiles.find(p => p.clientId === data.active)
 function canTranslate(profile) {
   const tokens = profile?.tokens
   return Boolean(tokens?.access && tokens.scopes.includes(sharing) && (tokens.expires > Date.now() || tokens.refresh))
+}
+
+function accountPicture(profile) {
+  if (!canTranslate(profile) || !profile.tokens.id) return
+  let claims
+  try { claims = decodeJwt(profile.tokens.id) } catch { return }
+  if (claims.sub !== profile.subject || typeof claims.picture !== 'string') return
+  const url = URL.parse(claims.picture)
+  if (url?.protocol === 'https:' && !url.username && !url.password) return url.href
 }
 
 export async function verifyIdentity(token, clientId, nonce, date, verificationKey = jwks) {
@@ -72,6 +81,7 @@ export function createAccountService({ store = accountStore(), request = fetch, 
       connected: canTranslate(profile), pending: Boolean(pending), profileId: profile?.clientId,
       ...(pending?.url && { url: pending.url }),
       ...(profile?.label && { label: profile.label }),
+      picture: accountPicture(profile),
       ...(profile?.clientId === catalog?.clientId && catalog && { model: catalog.model }),
       ...(lastError && { error: lastError }),
       profiles: data.profiles.filter(p => p.subject).map(p => ({ id: p.clientId, label: p.label })),

@@ -40,6 +40,8 @@ npm test
 node scripts/check-desktop.mjs "/Applications/ChatGPT.app/Contents/Resources/codex-cli/bin/codex"
 ```
 
-Node.js 24 이상에서 `npm test`를 실행하면 설치 패키지를 빌드한 뒤 테스트합니다. 리더 UI는 Vite, React와 TypeScript로 작성합니다. `npm run dev`로 UI 개발 서버를 열 수 있으며, 실제 뉴스와 계정 도구는 Codex의 MCP 연결에서 동작합니다. 설치본에는 UI와 정적 자산을 단일 HTML로 묶습니다.
+Node.js 24 이상에서 `npm run dev`를 실행하고 터미널의 로컬 주소를 브라우저에서 열면 플러그인 설치 없이 실제 피드, 댓글, 설정과 ChatGPT 연결을 사용할 수 있습니다. 개발 서버는 저장소에 포함된 MCP 서버를 실행하며, 기본적으로 설치된 플러그인과 같은 `~/.local/share/hacker-news/`의 번역 캐시, 설정, 로그인 정보를 사용합니다.
+
+React와 TypeScript로 작성한 UI는 Vite가 변경 즉시 반영합니다. 서버 소스를 수정했다면 `npm run build` 후 개발 서버를 다시 시작하세요. `npm test`는 단일 HTML 리더와 설치 패키지를 빌드한 뒤 테스트합니다.
 
 로컬 MCP 서버가 OAuth 로그인, 토큰 갱신, 모델 조회와 Responses API 호출을 직접 처리합니다. React 리더에는 Codex UI Kit의 테마와 컴포넌트를 포함합니다. 새 버전을 배포할 때는 소스와 빌드 결과인 `dist/hacker-news/`를 함께 커밋하고 `main`에 푸시하세요. 설치하는 Mac은 이 패키지를 그대로 사용합니다.

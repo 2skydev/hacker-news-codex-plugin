@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/sonner";
 import { SettingsIcon } from "lucide-react";
@@ -46,6 +46,21 @@ function Reader({ sort, changeSort, prefs, onPreferences, account, notify, ready
     },
   });
 
+  const toastId = "reader-translation";
+  useEffect(() => {
+    if (!progress || settings) { toast.dismiss(toastId); return; }
+    const { done, total } = progress;
+    toast((done === total ? "번역 완료 " : "번역 중 ") + done + "/" + total, {
+      id: toastId, toasterId: "translation", duration: Infinity, dismissible: false, closeButton: false,
+      icon: <svg width="18" height="18" viewBox="0 0 20 20" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2">
+        <circle cx="10" cy="10" r="8" opacity=".22" />
+        {done > 0 && <circle cx="10" cy="10" r="8" pathLength="100" strokeDasharray="100"
+          strokeDashoffset={100 - 100 * done / total} transform="rotate(-90 10 10)" strokeLinecap="round" />}
+      </svg>,
+    });
+  }, [progress, settings]);
+  useEffect(() => () => { toast.dismiss(toastId); }, []);
+
   function openStory(item: Item, element: HTMLButtonElement) {
     storyTrigger.current = { element, scroll: window.scrollY };
     discussion.open(item);
@@ -74,19 +89,14 @@ function Reader({ sort, changeSort, prefs, onPreferences, account, notify, ready
 
   return <Language.Provider value={{ bilingual, toggle: toggleLanguage, translation }}>
     <main className="reader" onClick={event => interceptLink(event, notify)}>
-      <header className="masthead"><div className="brand"><span className="mark" aria-hidden="true">Y</span><h1 lang="en">Hacker News</h1></div>
+      {!settings && <header className="masthead"><div className="brand"><span className="mark" aria-hidden="true">Y</span><h1 lang="en">Hacker News</h1></div>
         <div className="masthead-actions">
-          {progress && !settings && <aside id="translation-status" aria-label="한국어 번역">
-            <progress id="translation-progress" aria-label="한국어 번역 진행도" max={progress.total} value={progress.done}
-              style={{ "--fill": (progress.done / progress.total) + "turn" } as CSSProperties} />
-            <span>번역 중 <b>{progress.done}/{progress.total}</b></span>
-          </aside>}
           {!thread && !settings && feed.updatedAt && <UpdatedAt stamp={feed.updatedAt} />}
           <Button id="open-settings" ref={gear} variant="ghost" size="icon" aria-label="설정" title="설정" aria-expanded={settings} aria-controls="settings" onClick={toggleSettings}>
             <SettingsIcon />
           </Button>
         </div>
-      </header>
+      </header>}
       <div hidden={settings || !!thread}><Feed feed={feed} sort={sort} changeSort={changeSort} open={openStory} hostError={hostError} /></div>
       {thread && <div hidden={settings}><Article discussion={discussion} back={discussion.close} /></div>}
       {settings && <Settings account={account} close={toggleSettings} notify={notify} onPreferences={onPreferences} blocked={blocked} retry={retry} />}
@@ -109,5 +119,6 @@ export function App() {
   }, []);
   return <><Reader key={sort} sort={sort} changeSort={changeSort} prefs={prefs} onPreferences={setPrefs}
     bilingual={bilingual} toggleLanguage={() => setBilingual(value => !value)} ready={ready} hostError={error} notify={notify} account={account} />
-    <Toaster duration={6500} /></>;
+    <Toaster duration={6500} />
+    <Toaster id="translation" position="top-right" /></>;
 }

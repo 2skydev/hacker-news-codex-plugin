@@ -854,11 +854,48 @@ var init_remote = __esm({
   }
 });
 
+// node_modules/jose/dist/webapi/util/decode_jwt.js
+function decodeJwt(jwt2) {
+  if (typeof jwt2 != "string")
+    throw new JWTInvalid("JWTs must use Compact JWS serialization, JWT must be a string");
+  const { 1: encodedPayload, length } = jwt2.split(".");
+  if (length === 5)
+    throw new JWTInvalid("Only JWTs using Compact JWS serialization can be decoded");
+  if (length !== 3)
+    throw new JWTInvalid("Invalid JWT");
+  if (!encodedPayload)
+    throw new JWTInvalid("JWTs must contain a payload");
+  let claimsSetBytes;
+  try {
+    claimsSetBytes = decode3(encodedPayload);
+  } catch (cause) {
+    throw new JWTInvalid("Failed to base64url decode the payload", { cause });
+  }
+  let claimsSet;
+  try {
+    claimsSet = JSON.parse(strictDecoder.decode(claimsSetBytes));
+  } catch (cause) {
+    throw new JWTInvalid("Failed to parse the decoded payload as JSON", { cause });
+  }
+  if (!isObject2(claimsSet))
+    throw new JWTInvalid("Invalid JWT Claims Set");
+  return claimsSet;
+}
+var init_decode_jwt = __esm({
+  "node_modules/jose/dist/webapi/util/decode_jwt.js"() {
+    init_base64url();
+    init_buffer_utils();
+    init_validate();
+    init_errors();
+  }
+});
+
 // node_modules/jose/dist/webapi/index.js
 var init_webapi = __esm({
   "node_modules/jose/dist/webapi/index.js"() {
     init_verify();
     init_remote();
+    init_decode_jwt();
   }
 });
 
@@ -2697,6 +2734,18 @@ function canTranslate(profile) {
   const tokens = profile?.tokens;
   return Boolean(tokens?.access && tokens.scopes.includes(sharing) && (tokens.expires > Date.now() || tokens.refresh));
 }
+function accountPicture(profile) {
+  if (!canTranslate(profile) || !profile.tokens.id) return;
+  let claims;
+  try {
+    claims = decodeJwt(profile.tokens.id);
+  } catch {
+    return;
+  }
+  if (claims.sub !== profile.subject || typeof claims.picture !== "string") return;
+  const url2 = URL.parse(claims.picture);
+  if (url2?.protocol === "https:" && !url2.username && !url2.password) return url2.href;
+}
 async function verifyIdentity(token, clientId, nonce, date5, verificationKey = jwks) {
   const { payload } = await jwtVerify(token, verificationKey, {
     issuer,
@@ -2747,6 +2796,7 @@ function createAccountService({ store = accountStore(), request = fetch, verify 
       profileId: profile?.clientId,
       ...pending?.url && { url: pending.url },
       ...profile?.label && { label: profile.label },
+      picture: accountPicture(profile),
       ...profile?.clientId === catalog?.clientId && catalog && { model: catalog.model },
       ...lastError && { error: lastError },
       profiles: data.profiles.filter((p) => p.subject).map((p) => ({ id: p.clientId, label: p.label }))
@@ -38171,7 +38221,7 @@ function openCache(directory) {
   const update = db.prepare(`UPDATE preferences SET model = coalesce(?, model), realtime = coalesce(?, realtime),
     cache_field = coalesce(?, cache_field), cache_period = coalesce(?, cache_period) WHERE id = 1`);
   const stats = db.prepare("SELECT count(*) AS count, coalesce(sum(length(CAST(ko AS BLOB))), 0) AS bytes FROM translations");
-  const remove = db.prepare("DELETE FROM translations WHERE (? = 'all' OR field = ?) AND saved_at >= ?");
+  const remove = db.prepare("DELETE FROM translations WHERE (? = 'all' OR field = ?) AND saved_at >= ? AND (? IS NULL OR saved_at < ?)");
   return {
     readPreview: db.prepare("SELECT payload, saved_at FROM page_previews WHERE key = ? AND saved_at >= ?"),
     writePreview: db.prepare(`INSERT INTO page_previews (key, payload, saved_at) VALUES (?, ?, ?)
@@ -38191,11 +38241,14 @@ function openCache(directory) {
     },
     stats: () => stats.get(),
     clear(field, days, now) {
-      if (!["title", "text", "all"].includes(field) || ![0, 1, 7, 30].includes(days))
+      if (!["title", "text", "all"].includes(field) || ![0, 1, 7, 30].includes(Math.abs(days)))
         throw new Error("\uC0AD\uC81C \uBC94\uC704\uB97C \uD655\uC778\uD574 \uC8FC\uC138\uC694.");
       db.exec("BEGIN IMMEDIATE");
       try {
-        const { changes } = remove.run(field, field, days ? Math.max(1, now - days * 864e5) : 0);
+        const cutoff = now - Math.abs(days) * 864e5;
+        const oldest = days > 0 ? Math.max(1, cutoff) : days < 0 ? 1 : 0;
+        const before = days < 0 ? cutoff : null;
+        const { changes } = remove.run(field, field, oldest, before, before);
         db.exec("UPDATE preferences SET epoch = epoch + 1; COMMIT");
         return { removed: changes, ...stats.get() };
       } catch (error62) {
@@ -38577,7 +38630,7 @@ var icons = await Promise.all(["light", "dark"].map(async (theme) => {
   return { src: "data:image/svg+xml;base64," + image, mimeType: "image/svg+xml", sizes: ["any"], theme };
 }));
 var fields = { "\uBAA8\uB4E0 \uBC88\uC5ED": "all", "\uC81C\uBAA9": "title", "\uBCF8\uBB38\uACFC \uB313\uAE00": "text" };
-var periods = { "\uC804\uCCB4 \uAE30\uAC04": 0, "\uCD5C\uADFC 24\uC2DC\uAC04": 1, "\uCD5C\uADFC 7\uC77C": 7, "\uCD5C\uADFC 30\uC77C": 30 };
+var periods = { "\uC804\uCCB4 \uAE30\uAC04": 0, "\uCD5C\uADFC 24\uC2DC\uAC04": 1, "\uCD5C\uADFC 7\uC77C": 7, "\uCD5C\uADFC 30\uC77C": 30, "24\uC2DC\uAC04\uBCF4\uB2E4 \uC624\uB798\uB428": -1, "7\uC77C\uBCF4\uB2E4 \uC624\uB798\uB428": -7, "30\uC77C\uBCF4\uB2E4 \uC624\uB798\uB428": -30 };
 var settingsValues = external_exports.object({
   model: external_exports.string().min(1),
   realtime: external_exports.boolean(),
@@ -38600,9 +38653,13 @@ var page = {
 };
 serveStdio(() => {
   const server = new McpServer({ name: "hacker-news", title: "Hacker News", version: version2, icons });
-  server.registerResource("Hacker News", uri, { mimeType, _meta: viewMeta }, async () => ({
-    contents: [{ uri, mimeType, text: html, _meta: viewMeta }]
-  }));
+  server.registerResource("Hacker News", uri, { mimeType, _meta: viewMeta }, async () => {
+    const { picture } = await accountStatus().catch(() => ({}));
+    const resourceDomains = ["https://lh3.googleusercontent.com", "https://cdn.openai.com"];
+    if (picture) resourceDomains.push(new URL(picture).origin);
+    const meta3 = { ...viewMeta, ui: { csp: { connectDomains: [], resourceDomains: [...new Set(resourceDomains)] } } };
+    return { contents: [{ uri, mimeType, text: html, _meta: meta3 }] };
+  });
   server.registerTool("open_reader", {
     title: "Hacker News",
     description: "\uD55C\uAD6D\uC5B4 Hacker News \uD53C\uB4DC\uB97C \uC5FD\uB2C8\uB2E4.",

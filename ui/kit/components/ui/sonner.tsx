@@ -40,9 +40,11 @@ const Toaster = ({
   style,
   icons,
   toastOptions,
+  position = 'top-center',
   ...props
 }: ToasterProps) => {
   const { theme = 'system' } = useTheme()
+  const centered = position.endsWith('center')
   const classNames = { ...toastClassNames }
 
   for (const key of Object.keys(classNames) as (keyof typeof classNames)[]) {
@@ -52,23 +54,24 @@ const Toaster = ({
   return (
     <Sonner
       theme={theme as ToasterProps['theme']}
-      position="top-center"
+      position={position}
       gap={8}
-      offset={{
+      offset={centered ? {
         top: '3rem',
         right: '0.5rem',
         bottom: '0.5rem',
         left: '0.5rem',
-      }}
-      mobileOffset={{
+      } : undefined}
+      mobileOffset={centered ? {
         top: '3rem',
         right: '0.5rem',
         bottom: '0.5rem',
         left: '0.5rem',
-      }}
+      } : undefined}
       closeButton
       className={cn(
-        'toaster group flex justify-center [&&_[data-sonner-toast]]:inset-x-auto [&&_[data-sonner-toast]]:w-max',
+        'toaster group',
+        centered && 'flex justify-center [&&_[data-sonner-toast]]:inset-x-auto [&&_[data-sonner-toast]]:w-max',
         className,
       )}
       icons={{
@@ -82,8 +85,7 @@ const Toaster = ({
       }}
       style={
         {
-          '--width': 'min(48rem, calc(100vw - 1rem))',
-          width: 'var(--width)',
+          ...(centered && { '--width': 'min(48rem, calc(100vw - 1rem))', width: 'var(--width)' }),
           '--normal-bg': 'var(--popover)',
           '--normal-text': 'var(--foreground)',
           '--normal-border': 'var(--border)',

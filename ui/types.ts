@@ -28,6 +28,7 @@ export interface FeedPage {
 export interface StoryPage { item: Item; comments: Item[]; nextOffset: number; hasMore: boolean }
 export interface Preview<T> { page?: T; updatedAt?: number; titles?: Pick<Item, "id" | "title" | "titleKo">[] }
 export interface Account {
+  picture?: string;
   label?: string;
   profileId?: string;
   connected: boolean;
@@ -39,7 +40,7 @@ export interface Preferences {
   model: string;
   realtime: boolean;
   cacheField: "모든 번역" | "제목" | "본문과 댓글";
-  cachePeriod: "전체 기간" | "최근 24시간" | "최근 7일" | "최근 30일";
+  cachePeriod: "전체 기간" | "최근 24시간" | "최근 7일" | "최근 30일" | "24시간보다 오래됨" | "7일보다 오래됨" | "30일보다 오래됨";
 }
 export interface SettingsData {
   values: Preferences;

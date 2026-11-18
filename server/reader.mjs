@@ -15,7 +15,7 @@ const icons = await Promise.all(["light", "dark"].map(async theme => {
   return { src: "data:image/svg+xml;base64," + image, mimeType: "image/svg+xml", sizes: ["any"], theme };
 }));
 const fields = { "모든 번역": "all", "제목": "title", "본문과 댓글": "text" };
-const periods = { "전체 기간": 0, "최근 24시간": 1, "최근 7일": 7, "최근 30일": 30 };
+const periods = { "전체 기간": 0, "최근 24시간": 1, "최근 7일": 7, "최근 30일": 30, "24시간보다 오래됨": -1, "7일보다 오래됨": -7, "30일보다 오래됨": -30 };
 const settingsValues = z.object({
   model: z.string().min(1), realtime: z.boolean(), cacheField: z.enum(Object.keys(fields)), cachePeriod: z.enum(Object.keys(periods)),
 });
@@ -36,9 +36,13 @@ const page = {
 
 serveStdio(() => {
   const server = new McpServer({ name: "hacker-news", title: "Hacker News", version, icons });
-  server.registerResource("Hacker News", uri, { mimeType, _meta: viewMeta }, async () => ({
-    contents: [{ uri, mimeType, text: html, _meta: viewMeta }],
-  }));
+  server.registerResource("Hacker News", uri, { mimeType, _meta: viewMeta }, async () => {
+    const { picture } = await accountStatus().catch(() => ({}));
+    const resourceDomains = ["https://lh3.googleusercontent.com", "https://cdn.openai.com"];
+    if (picture) resourceDomains.push(new URL(picture).origin);
+    const meta = { ...viewMeta, ui: { csp: { connectDomains: [], resourceDomains: [...new Set(resourceDomains)] } } };
+    return { contents: [{ uri, mimeType, text: html, _meta: meta }] };
+  });
   server.registerTool("open_reader", {
     title: "Hacker News",
     description: "한국어 Hacker News 피드를 엽니다.",

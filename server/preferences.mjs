@@ -39,7 +39,7 @@ export function openCache(directory) {
   const update = db.prepare(`UPDATE preferences SET model = coalesce(?, model), realtime = coalesce(?, realtime),
     cache_field = coalesce(?, cache_field), cache_period = coalesce(?, cache_period) WHERE id = 1`);
   const stats = db.prepare('SELECT count(*) AS count, coalesce(sum(length(CAST(ko AS BLOB))), 0) AS bytes FROM translations');
-  const remove = db.prepare("DELETE FROM translations WHERE (? = 'all' OR field = ?) AND saved_at >= ?");
+  const remove = db.prepare("DELETE FROM translations WHERE (? = 'all' OR field = ?) AND saved_at >= ? AND (? IS NULL OR saved_at < ?)");
   return {
     readPreview: db.prepare('SELECT payload, saved_at FROM page_previews WHERE key = ? AND saved_at >= ?'),
     writePreview: db.prepare(`INSERT INTO page_previews (key, payload, saved_at) VALUES (?, ?, ?)
@@ -59,11 +59,14 @@ export function openCache(directory) {
     },
     stats: () => stats.get(),
     clear(field, days, now) {
-      if (!['title', 'text', 'all'].includes(field) || ![0, 1, 7, 30].includes(days))
+      if (!['title', 'text', 'all'].includes(field) || ![0, 1, 7, 30].includes(Math.abs(days)))
         throw new Error('삭제 범위를 확인해 주세요.');
       db.exec('BEGIN IMMEDIATE');
       try {
-        const { changes } = remove.run(field, field, days ? Math.max(1, now - days * 86400000) : 0);
+        const cutoff = now - Math.abs(days) * 86400000;
+        const oldest = days > 0 ? Math.max(1, cutoff) : (days < 0 ? 1 : 0);
+        const before = days < 0 ? cutoff : null;
+        const { changes } = remove.run(field, field, oldest, before, before);
         db.exec('UPDATE preferences SET epoch = epoch + 1; COMMIT');
         return { removed: changes, ...stats.get() };
       } catch (error) {
