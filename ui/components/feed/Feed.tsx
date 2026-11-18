@@ -10,6 +10,29 @@ import { TranslatedField } from "../translation/TranslatedField.tsx";
 
 type OpenStory = (item: Item, trigger: HTMLButtonElement) => void;
 
+function FeedCount({
+  value,
+  prefix = "",
+  suffix = "",
+}: {
+  value: number;
+  prefix?: string;
+  suffix?: string;
+}) {
+  const label = `${prefix}${numbers.format(value)}${suffix}`;
+
+  return (
+    <>
+      <span className="sr-only">{label}</span>
+      <span aria-hidden="true" data-feed-count={label}>
+        {prefix}
+        <AnimatedCount value={value} />
+        {suffix}
+      </span>
+    </>
+  );
+}
+
 function Row({ item, index, open }: { item: Item; index: number; open: OpenStory }) {
   const url = externalUrl(item.url);
   const title = (
@@ -41,11 +64,15 @@ function Row({ item, index, open }: { item: Item; index: number; open: OpenStory
           )}
         </h2>
         <div className="meta">
-          {item.score != null && <span className="score">{numbers.format(item.score)}점</span>}
+          {item.score != null && (
+            <span className="score">
+              <FeedCount value={item.score} suffix="점" />
+            </span>
+          )}
           <span>{since(item.time)}</span>
           {item.descendants != null && (
             <button type="button" className="count" onClick={(e) => open(item, e.currentTarget)}>
-              댓글 {numbers.format(item.descendants)}
+              <FeedCount value={item.descendants} prefix="댓글 " />
             </button>
           )}
         </div>

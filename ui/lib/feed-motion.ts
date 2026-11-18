@@ -66,6 +66,10 @@ export function playFeedAnimations(positions: Map<HTMLLIElement, FeedRowPosition
     // Leave the live list immediately and fade a non-interactive copy in place.
     const snapshot = row.cloneNode(true) as HTMLLIElement;
     snapshot.removeAttribute("id");
+    // NumberFlow renders its digits in a shadow root that is not copied by cloneNode.
+    for (const count of snapshot.querySelectorAll<HTMLElement>("[data-feed-count]")) {
+      count.textContent = count.dataset.feedCount ?? "";
+    }
     Object.assign(snapshot.style, {
       position: "absolute",
       top: `${rect.top - layerRect.top}px`,

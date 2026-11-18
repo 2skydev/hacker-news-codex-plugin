@@ -6,5 +6,5 @@ type AnimatedCountProps = Pick<
 >;
 
 export function AnimatedCount(props: AnimatedCountProps) {
-  return <NumberFlow className="tabular-nums" locales="ko" isolate {...props} />;
+  return <NumberFlow locales="ko" isolate {...props} />;
 }

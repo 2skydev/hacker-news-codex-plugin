@@ -88,7 +88,6 @@ summary {
 .title-domain {
   font-size: 0.75rem;
 }
-#updated-at,
 .rank {
   font-variant-numeric: tabular-nums;
 }
@@ -231,7 +230,6 @@ summary {
   color: var(--muted-foreground);
   font-size: 0.8125rem;
   font-weight: 500;
-  font-variant-numeric: tabular-nums;
 }
 .comment-list {
   list-style: none;

@@ -41,7 +41,7 @@ export function CacheSettings({ data, saving, range, onRangeChange, onClear }: C
         <Field orientation="responsive">
           <FieldContent>
             <FieldTitle>저장된 번역</FieldTitle>
-            <FieldDescription className="tabular-nums">
+            <FieldDescription>
               <AnimatedCount value={data.cache.count} />개 ({formatCacheBytes(data.cache.bytes)})
             </FieldDescription>
           </FieldContent>
