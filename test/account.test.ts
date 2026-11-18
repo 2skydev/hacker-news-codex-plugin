@@ -17,7 +17,7 @@ const events = (values: unknown[]) =>
   new Response(values.map((e) => `data: ${JSON.stringify(e)}\r\n\r\n`).join(""));
 const success = () =>
   events([
-    { type: "response.output_text.delta", delta: JSON.stringify(translations) },
+    { type: "response.output_text.delta", delta: JSON.stringify({ translations }) },
     { type: "response.completed" },
   ]);
 const json = (data: unknown, status = 200) => Response.json(data, { status });
@@ -154,8 +154,12 @@ test("OAuth login, plan-approved model choice, stream and disconnect", async (t)
   assert.deepEqual(await f.service.translateBatch(rows), translations);
   const body = JSON.parse(String(f.api[1].options.body));
   assert.equal(body.model, "gpt-6-luna");
+  assert.deepEqual(body.reasoning, { effort: "low" });
   assert.equal(body.stream, true);
   assert.equal(body.store, false);
+  assert.equal(body.text.format.type, "json_schema");
+  assert.equal(body.text.format.strict, true);
+  assert.equal(body.text.format.schema.properties.translations.type, "array");
   assert.equal(new Headers(f.api[1].options.headers).get("Authorization"), "Bearer test-access");
   assert.equal((await f.service.signOut()).connected, false);
   assert.equal(f.revoked, "test-refresh");
@@ -293,9 +297,18 @@ test("a stream can fail after sending deltas; incomplete and mismatched output a
   await assert.rejects(
     readTranslationStream(events([{ type: "response.output_text.delta", delta: "partial" }])),
   );
+  await assert.rejects(
+    readTranslationStream(
+      events([{ type: "response.refusal.done" }, { type: "response.completed" }]),
+    ),
+    { code: "translation_error" },
+  );
   f.setResponse(() =>
     events([
-      { type: "response.output_text.delta", delta: '[{"id":"wrong","text":"한글"}]' },
+      {
+        type: "response.output_text.delta",
+        delta: '{"translations":[{"id":"wrong","text":"한글"}]}',
+      },
       { type: "response.completed" },
     ]),
   );
@@ -393,6 +406,8 @@ test("모델 설정에는 계정이 제공하는 모델만 표시하고 선택�
   await f.login();
   assert.deepEqual(await f.service.listModels(), ["other", "gpt-6-luna"]);
   await f.service.translateBatch(rows, "other");
-  assert.equal(JSON.parse(String(f.api.at(-1)?.options.body)).model, "other");
+  const body = JSON.parse(String(f.api.at(-1)?.options.body));
+  assert.equal(body.model, "other");
+  assert.equal(body.reasoning, undefined);
   await assert.rejects(f.service.translateBatch(rows, "hidden"), { code: "no_model" });
 });

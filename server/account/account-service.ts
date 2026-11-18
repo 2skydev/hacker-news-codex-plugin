@@ -9,7 +9,15 @@ import {
 } from "jose";
 import { AUTO_MODEL } from "../../shared/constants/settings.constants.ts";
 import type { Account } from "../../shared/types/reader.types.ts";
-import { issuer, resource, scope, sharing, terminalGrants, tokenUrl } from "./account.constants.ts";
+import {
+  issuer,
+  lunaModel,
+  resource,
+  scope,
+  sharing,
+  terminalGrants,
+  tokenUrl,
+} from "./account.constants.ts";
 import type { TranslationEntry } from "./account-inference.ts";
 import { checkResponse, issue, translateTitles } from "./account-inference.ts";
 import type { AccountProfile, AccountState, AccountTokens } from "./account-store.ts";
@@ -465,7 +473,7 @@ export function createAccountService({
       const available = (models ?? []).filter(
         (m) => m.visibility === "list" && typeof m.slug === "string",
       );
-      const preferred = available.find((m) => m.slug === "gpt-6-luna") ?? available[0];
+      const preferred = available.find((m) => m.slug === lunaModel) ?? available[0];
       if (!preferred)
         throw issue("no_model", "연결한 ChatGPT 계정에서 사용할 번역 모델을 찾지 못했습니다.");
       catalog = {
