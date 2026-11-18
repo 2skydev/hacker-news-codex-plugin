@@ -11,7 +11,7 @@ import {
 } from "../../shared/constants/settings.constants.ts";
 import { formatCacheBytes } from "../../shared/lib/format-cache-bytes.ts";
 import type { Preferences, SettingsData, Tools } from "../../shared/types/reader.types.ts";
-import { accountStatus, beginSignIn, listModels, signOut } from "../account/account-service.ts";
+import { beginSignIn, listModels, readerAccount, signOut } from "../account/account-service.ts";
 import { feed, service, story, translate, watch } from "../news/news-service.ts";
 import {
   APP_VISIBILITY,
@@ -56,18 +56,11 @@ serveStdio(() => {
     "Hacker News",
     READER_URI,
     { mimeType: READER_MIME_TYPE, _meta: READER_VIEW_META },
-    async () => {
-      const picture = (await accountStatus().catch(() => undefined))?.picture;
-      const resourceDomains = ["https://lh3.googleusercontent.com", "https://cdn.openai.com"];
-      if (picture) resourceDomains.push(new URL(picture).origin);
-      const meta = {
-        ...READER_VIEW_META,
-        ui: { csp: { connectDomains: [], resourceDomains: [...new Set(resourceDomains)] } },
-      };
-      return {
-        contents: [{ uri: READER_URI, mimeType: READER_MIME_TYPE, text: html, _meta: meta }],
-      };
-    },
+    async () => ({
+      contents: [
+        { uri: READER_URI, mimeType: READER_MIME_TYPE, text: html, _meta: READER_VIEW_META },
+      ],
+    }),
   );
   server.registerTool(
     "open_reader",
@@ -149,8 +142,14 @@ serveStdio(() => {
     false,
     translate,
   );
-  tool("hn_account", "ChatGPT 연결 상태", {}, true, accountStatus);
-  tool("hn_connect", "ChatGPT 연결", {}, false, beginSignIn);
+  tool("hn_account", "ChatGPT 연결 상태", {}, true, readerAccount);
+  tool(
+    "hn_connect",
+    "ChatGPT 연결",
+    { newAccount: z.boolean().optional(), profileId: z.string().min(1).optional() },
+    false,
+    beginSignIn,
+  );
   tool("hn_disconnect", "ChatGPT 연결 해제", {}, false, signOut);
   const preferences = () => service().preferences;
   tool("hn_preferences", "리더 설정 읽기", {}, true, () => preferences().values());

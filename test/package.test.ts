@@ -11,7 +11,7 @@ import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js"
 import type { Tools } from "../shared/types/reader.types.ts";
 
 interface ReaderToolMeta {
-  ui?: { visibility?: string[]; resourceUri?: string };
+  ui?: { visibility?: string[]; resourceUri?: string; csp?: { resourceDomains?: string[] } };
   "openai/ui"?: { entrypoints?: { type: string }[] };
 }
 
@@ -133,6 +133,7 @@ test("설치 패키지가 사이드바 화면과 로컬 도구를 제공한다",
   assert.equal(resource.mimeType, "text/html;profile=mcp-app");
   const viewMeta = resource._meta?.["openai/ui"] as { preferredDisplayMode?: string } | undefined;
   assert.equal(viewMeta?.preferredDisplayMode, "fullscreen");
+  assert.deepEqual((resource._meta as ReaderToolMeta).ui?.csp?.resourceDomains ?? [], []);
   assert.match(resource.text, /open-settings/);
   assert.match(resource.text, /id="root"/);
   assert.doesNotMatch(resource.text, /url\(["']?\.\/assets\//);
@@ -149,5 +150,8 @@ test("설치 패키지가 사이드바 화면과 로컬 도구를 제공한다",
   assert.equal((await callTool("hn_account")).pending, true);
   await callTool("hn_disconnect");
   assert.equal((await callTool("hn_account")).pending, false);
+  const addAccount = new URL((await callTool("hn_connect", { newAccount: true })).url);
+  assert.equal(addAccount.searchParams.get("client_id"), "dynamic_agent_client");
+  await callTool("hn_disconnect");
   assert.ok((await client.callTool({ name: "hn_feed", arguments: { sort: "other" } })).isError);
 });

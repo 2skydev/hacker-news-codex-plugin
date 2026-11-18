@@ -1,6 +1,6 @@
 {
   "name": "hacker-news",
-  "version": "0.3.9",
+  "version": "0.3.10",
   "private": true,
   "type": "module",
   "description": "ChatGPT 구독으로 번역하는 Codex용 Hacker News 리더",

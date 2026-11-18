@@ -8,7 +8,7 @@ import {
   type KeyInput,
 } from "jose";
 import { AUTO_MODEL } from "../../shared/constants/settings.constants.ts";
-import type { Account } from "../../shared/types/reader.types.ts";
+import type { Account, AccountSignIn } from "../../shared/types/reader.types.ts";
 import {
   issuer,
   lunaModel,
@@ -20,6 +20,7 @@ import {
 } from "./account.constants.ts";
 import type { TranslationEntry } from "./account-inference.ts";
 import { checkResponse, issue, translateTitles } from "./account-inference.ts";
+import { readAccountPicture } from "./account-picture.ts";
 import type { AccountProfile, AccountState, AccountTokens } from "./account-store.ts";
 import { accountStore } from "./account-store.ts";
 
@@ -34,11 +35,6 @@ interface SignInAttempt {
   redirect?: string;
   url?: string;
   consumed?: boolean;
-}
-
-interface SignInOptions {
-  newAccount?: boolean;
-  profileId?: string;
 }
 
 interface ModelCatalog {
@@ -167,20 +163,26 @@ export function createAccountService({
   store = accountStore(),
   request = fetch,
   verify = verifyIdentity,
+  readPicture = readAccountPicture,
 }: {
   store?: ReturnType<typeof accountStore>;
   request?: AccountRequest;
   verify?: typeof verifyIdentity;
+  readPicture?: typeof readAccountPicture;
 } = {}) {
   let pending: SignInAttempt | undefined;
   let lastError: string | undefined;
   let catalog: ModelCatalog | undefined;
+  let cachedPicture:
+    | { url: string; profileId?: string; expires: number; data: Promise<string | undefined> }
+    | undefined;
   let requests = new AbortController();
 
   function invalidate() {
     requests.abort();
     requests = new AbortController();
     catalog = undefined;
+    cachedPicture = undefined;
   }
 
   async function accountStatus(): Promise<
@@ -201,6 +203,25 @@ export function createAccountService({
         .filter((p) => p.subject)
         .map((p) => ({ id: p.clientId, label: p.label })),
     };
+  }
+
+  async function readerAccount() {
+    const status = await accountStatus();
+    const { picture, profileId } = status;
+    if (!picture) return status;
+
+    if (
+      cachedPicture?.url !== picture ||
+      cachedPicture.profileId !== profileId ||
+      cachedPicture.expires < Date.now()
+    ) {
+      const data = readPicture(picture).catch(() => undefined);
+      cachedPicture = { url: picture, profileId, expires: Date.now() + 5 * 60_000, data };
+    }
+    const cached = cachedPicture;
+    const data = await cached.data;
+    if (!data && cachedPicture === cached) cachedPicture = undefined;
+    return { ...status, picture: data };
   }
 
   async function finish(attempt: SignInAttempt, params: URLSearchParams, redirect: string) {
@@ -254,7 +275,7 @@ export function createAccountService({
     if (!tokens.scopes.includes(sharing)) throw disconnected();
   }
 
-  async function beginSignIn({ newAccount = false, profileId }: SignInOptions = {}) {
+  async function beginSignIn({ newAccount = false, profileId }: AccountSignIn = {}) {
     if (pending) throw issue("sign_in_pending", "이미 ChatGPT 로그인을 진행하고 있습니다.");
     const attempt: SignInAttempt = { state: secret(), nonce: secret(), verifier: secret() };
     pending = attempt;
@@ -362,7 +383,7 @@ export function createAccountService({
   async function signOut() {
     if (pending) {
       endAttempt(pending);
-      return accountStatus();
+      return readerAccount();
     }
     invalidate();
     lastError = undefined;
@@ -389,7 +410,7 @@ export function createAccountService({
       }
       lastError = "로컬 연결을 해제했습니다. 원격 해제 여부는 ChatGPT 설정에서 확인해 주세요.";
     });
-    return accountStatus();
+    return readerAccount();
   }
 
   async function credentials() {
@@ -551,8 +572,8 @@ export function createAccountService({
     }
   }
 
-  return { accountStatus, beginSignIn, signOut, translateBatch, listModels };
+  return { accountStatus, readerAccount, beginSignIn, signOut, translateBatch, listModels };
 }
 
-export const { accountStatus, beginSignIn, signOut, translateBatch, listModels } =
+export const { readerAccount, beginSignIn, signOut, translateBatch, listModels } =
   createAccountService();

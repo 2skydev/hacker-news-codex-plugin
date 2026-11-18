@@ -20,9 +20,10 @@ interface AccountSettingsProps {
 }
 
 export function AccountSettings({ account, blocked, retry }: AccountSettingsProps) {
-  const { session, busy, connect, disconnect } = account;
+  const { session, busy, connect, connectNew, connectSaved, disconnect } = account;
   const [failedPicture, setFailedPicture] = useState("");
   const picture = session?.picture;
+  const savedAccounts = session?.profiles?.filter((profile) => profile.id !== session.profileId);
 
   return (
     <FieldSet disabled={busy}>
@@ -33,12 +34,7 @@ export function AccountSettings({ account, blocked, retry }: AccountSettingsProp
             {session?.connected && (
               <span className="account-avatar" aria-hidden="true">
                 {picture && picture !== failedPicture ? (
-                  <img
-                    src={picture}
-                    referrerPolicy="no-referrer"
-                    alt=""
-                    onError={() => setFailedPicture(picture)}
-                  />
+                  <img src={picture} alt="" onError={() => setFailedPicture(picture)} />
                 ) : (
                   (session.label || "ChatGPT").charAt(0).toUpperCase()
                 )}
@@ -68,11 +64,30 @@ export function AccountSettings({ account, blocked, retry }: AccountSettingsProp
               연결 해제
             </Button>
           ) : (
-            <Button onClick={connect} disabled={busy}>
-              ChatGPT로 로그인
-            </Button>
+            <div className="flex shrink-0 flex-wrap gap-2">
+              <Button onClick={connect} disabled={busy}>
+                {session?.label ? "기존 계정 다시 연결" : "ChatGPT로 로그인"}
+              </Button>
+              {session?.profileId && (
+                <Button variant="outline" onClick={connectNew} disabled={busy}>
+                  다른 계정 연결
+                </Button>
+              )}
+            </div>
           )}
         </Field>
+        {!session?.connected && !session?.pending && !!savedAccounts?.length && (
+          <Field>
+            <FieldTitle>저장된 계정</FieldTitle>
+            <div className="flex flex-wrap gap-2">
+              {savedAccounts.map(({ id, label }) => (
+                <Button key={id} variant="outline" size="sm" onClick={() => connectSaved(id)}>
+                  {label || "ChatGPT 계정"}
+                </Button>
+              ))}
+            </div>
+          </Field>
+        )}
         {((session?.pending && session.url) || blocked) && (
           <Field className="flex-row flex-wrap items-center gap-3">
             {session?.pending && session.url && (

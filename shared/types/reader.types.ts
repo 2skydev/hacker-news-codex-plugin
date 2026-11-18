@@ -39,6 +39,7 @@ export interface Account {
   picture?: string;
   label?: string;
   profileId?: string;
+  profiles?: { id: string; label?: string }[];
   connected: boolean;
   pending: boolean;
   error?: string;
@@ -69,8 +70,9 @@ export type FeedArgs = { sort: Sort; offset: number; limit: number };
 export type StoryArgs = { id: number; offset: number; limit: number };
 export type PreviewArgs = (FeedArgs & { titles?: Pick<Item, "id" | "title">[] }) | StoryArgs;
 export type Failure = "limited" | "disconnected" | "error";
+export type AccountSignIn = { newAccount?: boolean; profileId?: string };
 export interface Tools {
-  hn_connect: [undefined, { url: string }];
+  hn_connect: [AccountSignIn, { url: string }];
   hn_disconnect: [undefined, Account];
   hn_account: [undefined, Account];
   hn_preferences: [undefined, Preferences];

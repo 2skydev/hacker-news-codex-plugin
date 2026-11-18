@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { Account } from "../../shared/types/reader.types.ts";
+import type { Account, AccountSignIn } from "../../shared/types/reader.types.ts";
 
 import { errorMessage } from "../lib/error-message.ts";
 import { call, openLink } from "../lib/host.ts";
@@ -48,14 +48,14 @@ export function useAccount(ready: boolean, notify: Notify) {
     };
   }, [ready, session?.pending]);
 
-  async function change(connect: boolean) {
+  async function change(signIn?: AccountSignIn) {
     if (changing.current) return;
     version.current++;
     changing.current = true;
     setBusy(true);
     try {
-      if (connect) {
-        const { url } = await call("hn_connect");
+      if (signIn) {
+        const { url } = await call("hn_connect", signIn);
         if (URL.parse(url)?.origin !== "https://auth.openai.com")
           throw new Error("로그인 주소를 확인하지 못했습니다.");
         accept({ connected: false, ...last.current, pending: true, url });
@@ -77,5 +77,13 @@ export function useAccount(ready: boolean, notify: Notify) {
       refresh();
     }
   }
-  return { session, busy, refresh, connect: () => change(true), disconnect: () => change(false) };
+  return {
+    session,
+    busy,
+    refresh,
+    connect: () => change({}),
+    connectNew: () => change({ newAccount: true }),
+    connectSaved: (profileId: string) => change({ profileId }),
+    disconnect: () => change(),
+  };
 }
