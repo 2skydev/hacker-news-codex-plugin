@@ -22,6 +22,7 @@ await Promise.all([
     "@base-ui/utils",
     "class-variance-authority",
     "cn",
+    "esm-env",
     "lucide-react",
     "tailwindcss",
     "tw-animate-css",
@@ -32,12 +33,17 @@ await Promise.all([
     ),
   ),
   ...Object.entries({
+    "@number-flow/react": "LICENSE.md",
+    "number-flow": "LICENSE.md",
     sonner: "LICENSE.md",
     "next-themes": "license.md",
     shadcn: "LICENSE.md",
     clsx: "license",
   }).map(([pkg, file]) =>
-    cp(path.join(root, "node_modules", pkg, file), path.join(notices, `${pkg}-LICENSE`)),
+    cp(
+      path.join(root, "node_modules", pkg, file),
+      path.join(notices, `${pkg.replace("/", "-")}-LICENSE`),
+    ),
   ),
   cp(path.join(root, "skills"), path.join(output, "skills"), { recursive: true }),
   cp(path.join(root, "bin"), path.join(output, "bin"), { recursive: true }),

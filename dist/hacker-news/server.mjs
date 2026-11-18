@@ -38329,6 +38329,14 @@ var PLUGIN_INFO = { name: "hacker-news", version: "0.3.9" };
 
 // server/mcp/reader.ts
 init_settings_constants();
+
+// shared/lib/format-cache-bytes.ts
+function formatCacheBytes(bytes) {
+  const [scale, unit] = bytes >= 1048576 ? [1048576, "MB"] : bytes >= 1024 ? [1024, "KB"] : [1, "B"];
+  return `${(bytes / scale).toLocaleString("ko", { maximumFractionDigits: 1 })} ${unit}`;
+}
+
+// server/mcp/reader.ts
 init_account_service();
 
 // server/news/news-service.ts
@@ -38876,10 +38884,6 @@ var settingsValues = external_exports.object({
   cacheField: external_exports.enum(cacheFields),
   cachePeriod: external_exports.enum(cachePeriods)
 });
-function cacheSize({ count, bytes }) {
-  const [scale, unit] = bytes >= 1048576 ? [1048576, "MB"] : bytes >= 1024 ? [1024, "KB"] : [1, "B"];
-  return count.toLocaleString("ko") + "\uAC1C (" + Number((bytes / scale).toFixed(1)).toLocaleString("ko") + " " + unit + ")";
-}
 var id = external_exports.int().positive();
 var page = {
   offset: external_exports.int().nonnegative().optional(),
@@ -38993,7 +38997,7 @@ serveStdio(() => {
         content: [
           {
             type: "text",
-            text: `${result.removed}\uAC1C \uC0AD\uC81C\uD588\uC2B5\uB2C8\uB2E4. \uB0A8\uC740 \uBC88\uC5ED ${cacheSize(result)}`
+            text: `${result.removed}\uAC1C \uC0AD\uC81C\uD588\uC2B5\uB2C8\uB2E4. \uB0A8\uC740 \uBC88\uC5ED ${result.count.toLocaleString("ko")}\uAC1C (${formatCacheBytes(result.bytes)})`
           }
         ],
         structuredContent: result
@@ -39015,7 +39019,7 @@ serveStdio(() => {
       modelError,
       cacheFields,
       cachePeriods,
-      cacheSize: cacheSize(preferences().stats())
+      cache: preferences().stats()
     };
   });
   tool(

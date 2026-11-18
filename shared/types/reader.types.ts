@@ -50,12 +50,17 @@ export interface Preferences {
   cacheField: keyof typeof CACHE_FIELDS;
   cachePeriod: keyof typeof CACHE_PERIODS;
 }
+export interface CacheStats {
+  count: number;
+  bytes: number;
+}
+
 export interface SettingsData {
   values: Preferences;
   models: string[];
   cacheFields: Preferences["cacheField"][];
   cachePeriods: Preferences["cachePeriod"][];
-  cacheSize: string;
+  cache: CacheStats;
   modelError?: string;
 }
 export type FeedArgs = { sort: Sort; offset: number; limit: number };
@@ -71,7 +76,7 @@ export interface Tools {
   hn_settings_update: [{ set: Partial<Preferences> }, { values: Preferences }];
   hn_clear_cache: [
     Pick<Preferences, "cacheField" | "cachePeriod">,
-    { removed: number; count: number; bytes: number },
+    CacheStats & { removed: number },
   ];
   hn_feed: [FeedArgs, FeedPage];
   hn_story: [StoryArgs, StoryPage];

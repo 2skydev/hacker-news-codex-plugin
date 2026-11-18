@@ -10,11 +10,14 @@ type Options = {
   view: string;
   onFailure: (status: Failure) => void;
 };
+
+type Progress = { done: number; total: number; startedAt: number };
+
 const key = (item: Item, field: Field) => JSON.stringify([field, item.id, item[field]]);
 export function useTranslation(jobs: Job[], { enabled, session, model, view, onFailure }: Options) {
   const [texts, setTexts] = useState(() => new Map<string, string>());
   const [blocked, setBlocked] = useState<Failure | "">("");
-  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
+  const [progress, setProgress] = useState<Progress | null>(null);
   const [visible, setVisible] = useState(!document.hidden);
   useEffect(() => {
     const update = () => setVisible(!document.hidden);
@@ -38,9 +41,12 @@ export function useTranslation(jobs: Job[], { enabled, session, model, view, onF
     if (!enabled || !visible || !field || blocked) return;
     const controller = new AbortController();
     const timer = setTimeout(async () => {
+      const startedAt = performance.now();
       setProgress((old) => {
-        const total = Math.max(old?.total || 0, missing.length);
-        return { done: total - missing.length, total };
+        if (!old || old.done === old.total) return { done: 0, total: missing.length, startedAt };
+
+        const total = Math.max(old.total, missing.length);
+        return { ...old, done: total - missing.length, total };
       });
       try {
         const result = await call(
@@ -82,8 +88,6 @@ export function useTranslation(jobs: Job[], { enabled, session, model, view, onF
   useEffect(() => {
     if (missing.length || !enabled || blocked) return;
     setProgress((old) => old && { ...old, done: old.total });
-    const timer = setTimeout(() => setProgress(null), 550);
-    return () => clearTimeout(timer);
   }, [missing.length, enabled, blocked]);
   return { translation, progress, blocked, retry: () => setBlocked("") };
 }

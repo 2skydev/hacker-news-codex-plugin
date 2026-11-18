@@ -8,6 +8,7 @@ import {
   CACHE_FIELDS,
   CACHE_PERIODS,
 } from "../../shared/constants/settings.constants.ts";
+import { formatCacheBytes } from "../../shared/lib/format-cache-bytes.ts";
 import type { Preferences, SettingsData, Tools } from "../../shared/types/reader.types.ts";
 import { accountStatus, beginSignIn, listModels, signOut } from "../account/account-service.ts";
 import { feed, service, story, translate, watch } from "../news/news-service.ts";
@@ -39,18 +40,6 @@ const settingsValues = z.object({
   cacheField: z.enum(cacheFields),
   cachePeriod: z.enum(cachePeriods),
 });
-function cacheSize({ count, bytes }: { count: number; bytes: number }) {
-  const [scale, unit]: [number, string] =
-    bytes >= 1048576 ? [1048576, "MB"] : bytes >= 1024 ? [1024, "KB"] : [1, "B"];
-  return (
-    count.toLocaleString("ko") +
-    "개 (" +
-    Number((bytes / scale).toFixed(1)).toLocaleString("ko") +
-    " " +
-    unit +
-    ")"
-  );
-}
 const id = z.int().positive();
 const page = {
   offset: z.int().nonnegative().optional(),
@@ -176,7 +165,7 @@ serveStdio(() => {
         content: [
           {
             type: "text",
-            text: `${result.removed}개 삭제했습니다. 남은 번역 ${cacheSize(result)}`,
+            text: `${result.removed}개 삭제했습니다. 남은 번역 ${result.count.toLocaleString("ko")}개 (${formatCacheBytes(result.bytes)})`,
           },
         ],
         structuredContent: result,
@@ -199,7 +188,7 @@ serveStdio(() => {
       modelError,
       cacheFields,
       cachePeriods,
-      cacheSize: cacheSize(preferences().stats()),
+      cache: preferences().stats(),
     };
   });
   tool(

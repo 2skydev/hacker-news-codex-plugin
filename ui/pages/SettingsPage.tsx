@@ -83,10 +83,10 @@ export function SettingsPage({
     if (!range) return;
     setSaving(true);
     try {
-      const { removed } = await call("hn_clear_cache", range);
+      const { removed, count, bytes } = await call("hn_clear_cache", range);
+      setData((old) => old && { ...old, cache: { count, bytes } });
       setRange(null);
       notify(`번역 캐시 ${removed}개를 삭제했습니다.`);
-      setReload((n) => n + 1);
     } catch {
       notify("번역 캐시를 비우지 못했습니다.");
     } finally {

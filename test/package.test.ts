@@ -64,16 +64,16 @@ test("설치 패키지가 사이드바 화면과 로컬 도구를 제공한다",
   ).run(Date.now());
   db.close();
   const readSettings = () => callTool("hn_settings_read");
-  assert.equal((await readSettings()).cacheSize, "1개 (6 B)");
+  assert.deepEqual((await readSettings()).cache, { count: 1, bytes: 6 });
   await callTool("hn_settings_update", { set: { cacheField: "본문과 댓글" } });
   const clear = async () => {
     const { cacheField, cachePeriod } = (await readSettings()).values;
     return callTool("hn_clear_cache", { cacheField, cachePeriod });
   };
-  assert.equal((await clear()).removed, 0);
+  assert.deepEqual(await clear(), { removed: 0, count: 1, bytes: 6 });
   await callTool("hn_settings_update", { set: { cacheField: "제목", cachePeriod: "최근 7일" } });
-  assert.equal((await clear()).removed, 1);
-  assert.equal((await readSettings()).cacheSize, "0개 (0 B)");
+  assert.deepEqual(await clear(), { removed: 1, count: 0, bytes: 0 });
+  assert.deepEqual((await readSettings()).cache, { count: 0, bytes: 0 });
   const manifest = JSON.parse(await readFile(join(root, "plugin.json"), "utf8"));
   const setup = await readFile(
     join(root, manifest.extensions["com.openai"].onboardingSkill),

@@ -18,7 +18,9 @@ import {
   FieldSet,
   FieldTitle,
 } from "@/components/ui/field";
+import { formatCacheBytes } from "../../../shared/lib/format-cache-bytes.ts";
 import type { Preferences, SettingsData } from "../../../shared/types/reader.types.ts";
+import { AnimatedCount } from "../AnimatedCount.tsx";
 import { SettingSelect } from "./SettingSelect.tsx";
 
 export type CacheRange = Pick<Preferences, "cacheField" | "cachePeriod">;
@@ -39,7 +41,9 @@ export function CacheSettings({ data, saving, range, onRangeChange, onClear }: C
         <Field orientation="responsive">
           <FieldContent>
             <FieldTitle>저장된 번역</FieldTitle>
-            <FieldDescription className="tabular-nums">{data.cacheSize}</FieldDescription>
+            <FieldDescription className="tabular-nums">
+              <AnimatedCount value={data.cache.count} />개 ({formatCacheBytes(data.cache.bytes)})
+            </FieldDescription>
           </FieldContent>
           <Dialog
             open={range !== null}

@@ -2,16 +2,11 @@ import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
-import type { Field, Preferences } from "../../shared/types/reader.types.ts";
+import type { CacheStats, Field, Preferences } from "../../shared/types/reader.types.ts";
 
 interface PreferencesRow extends Omit<Preferences, "realtime"> {
   realtime: number;
   epoch: number;
-}
-
-interface CacheStats {
-  count: number;
-  bytes: number;
 }
 
 export function openCache(directory: string) {

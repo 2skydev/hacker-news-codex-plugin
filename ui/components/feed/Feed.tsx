@@ -4,6 +4,7 @@ import { FEED_TABS } from "../../constants/feed.constants.ts";
 import type { useFeed } from "../../hooks/use-feed.ts";
 import { numbers, since } from "../../lib/format.ts";
 import { externalUrl } from "../../lib/links.ts";
+import { AnimatedCount } from "../AnimatedCount.tsx";
 import { LanguageButton } from "../translation/LanguageButton.tsx";
 import { TranslatedField } from "../translation/TranslatedField.tsx";
 
@@ -86,8 +87,19 @@ export function Feed({
         <LanguageButton />
       </div>
       {feed.pending && (
-        <button type="button" className="updates" onClick={feed.applyPending}>
-          {newCount ? `새 글 ${newCount}개 보기 ↑` : "바뀐 순위 보기 ↑"}
+        <button
+          type="button"
+          className="updates"
+          aria-label={newCount ? `새 글 ${numbers.format(newCount)}개 보기 ↑` : undefined}
+          onClick={feed.applyPending}
+        >
+          {newCount ? (
+            <span aria-hidden="true">
+              새 글 <AnimatedCount value={newCount} />개 보기 ↑
+            </span>
+          ) : (
+            "바뀐 순위 보기 ↑"
+          )}
         </button>
       )}
       <ol id="stories" className="stories">
