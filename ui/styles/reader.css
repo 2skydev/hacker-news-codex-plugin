@@ -236,14 +236,11 @@ summary {
 .comment-list {
   list-style: none;
 }
-.root-comments > .comment {
-  padding-block: 14px;
-}
-.root-comments > .comment:first-child {
-  padding-block-start: 0;
+.root-comments {
+  padding-block-end: 14px;
 }
 .root-comments > .comment + .comment {
-  border-block-start: 1px solid var(--border);
+  margin-block-start: 32px;
 }
 .comment-meta,
 .comment-link {
