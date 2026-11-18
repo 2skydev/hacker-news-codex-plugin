@@ -1,6 +1,15 @@
 import { ArrowLeft } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import {
+  Field,
+  FieldContent,
+  FieldDescription,
+  FieldGroup,
+  FieldLabel,
+  FieldLegend,
+  FieldSet,
+} from "@/components/ui/field";
 import { Switch } from "@/components/ui/switch";
 import type { Failure, Preferences, SettingsData } from "../../shared/types/reader.types.ts";
 import { AccountSettings } from "../components/settings/AccountSettings.tsx";
@@ -93,55 +102,66 @@ export function SettingsPage({
         </Button>
         <h2 id="settings-title">설정</h2>
       </header>
-      <AccountSettings account={account} blocked={blocked} retry={retry} />
-      {failed && (
-        <p className="empty">
-          설정을 불러오지 못했습니다.{" "}
-          <button type="button" className="retry" onClick={() => setReload((n) => n + 1)}>
-            다시 시도
-          </button>
-        </p>
-      )}
-      {!data && !failed && (
-        <p className="empty" role="status">
-          설정을 불러오는 중…
-        </p>
-      )}
-      {data && (
-        <>
-          <fieldset disabled={saving}>
-            <legend>리더</legend>
-            <SettingSelect
-              label="번역 모델"
-              id="model"
-              choices={data.models}
-              value={data.values.model}
-              disabled={saving}
-              change={(model) => save({ model })}
+      <div className="settings-sections">
+        <AccountSettings account={account} blocked={blocked} retry={retry} />
+        {failed && (
+          <p className="empty">
+            설정을 불러오지 못했습니다.{" "}
+            <button type="button" className="retry" onClick={() => setReload((n) => n + 1)}>
+              다시 시도
+            </button>
+          </p>
+        )}
+        {!data && !failed && (
+          <p className="empty" role="status">
+            설정을 불러오는 중…
+          </p>
+        )}
+        {data && (
+          <>
+            <FieldSet disabled={saving}>
+              <FieldLegend>리더</FieldLegend>
+              <FieldGroup className="settings-group">
+                <SettingSelect
+                  label="번역 모델"
+                  id="model"
+                  choices={data.models}
+                  value={data.values.model}
+                  orientation="responsive"
+                  disabled={saving}
+                  change={(model) => save({ model })}
+                />
+                <Field orientation="horizontal" data-disabled={saving}>
+                  <FieldContent>
+                    <FieldLabel id="realtime-label" htmlFor="realtime">
+                      실시간 갱신
+                    </FieldLabel>
+                    <FieldDescription id="realtime-description">
+                      글 목록을 자동으로 갱신합니다.
+                    </FieldDescription>
+                  </FieldContent>
+                  <Switch
+                    id="realtime"
+                    name="realtime"
+                    aria-labelledby="realtime-label"
+                    aria-describedby="realtime-description"
+                    disabled={saving}
+                    checked={data.values.realtime}
+                    onCheckedChange={(realtime) => save({ realtime })}
+                  />
+                </Field>
+              </FieldGroup>
+            </FieldSet>
+            <CacheSettings
+              data={data}
+              saving={saving}
+              range={range}
+              onRangeChange={setRange}
+              onClear={clear}
             />
-            <div className="setting-row">
-              <label id="realtime-label" htmlFor="realtime">
-                실시간 갱신
-              </label>
-              <Switch
-                id="realtime"
-                name="realtime"
-                aria-labelledby="realtime-label"
-                disabled={saving}
-                checked={data.values.realtime}
-                onCheckedChange={(realtime) => save({ realtime })}
-              />
-            </div>
-          </fieldset>
-          <CacheSettings
-            data={data}
-            saving={saving}
-            range={range}
-            onRangeChange={setRange}
-            onClear={clear}
-          />
-        </>
-      )}
+          </>
+        )}
+      </div>
     </section>
   );
 }

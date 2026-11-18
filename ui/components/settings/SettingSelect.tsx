@@ -1,6 +1,8 @@
+import { Field, FieldLabel } from "@/components/ui/field";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue,
@@ -11,6 +13,7 @@ export function SettingSelect<Value extends string>({
   id,
   value,
   choices,
+  orientation = "vertical",
   disabled,
   change,
 }: {
@@ -18,14 +21,15 @@ export function SettingSelect<Value extends string>({
   id: string;
   value: Value;
   choices: Value[];
+  orientation?: "vertical" | "responsive";
   disabled: boolean;
   change: (value: Value) => void;
 }) {
   return (
-    <div className="setting-row">
-      <label id={`${id}-label`} htmlFor={id}>
+    <Field orientation={orientation} data-disabled={disabled}>
+      <FieldLabel id={`${id}-label`} htmlFor={id}>
         {label}
-      </label>
+      </FieldLabel>
       <Select
         value={value}
         disabled={disabled}
@@ -33,17 +37,25 @@ export function SettingSelect<Value extends string>({
           if (next !== null) change(next);
         }}
       >
-        <SelectTrigger id={id} aria-labelledby={`${id}-label`}>
-          <SelectValue />
+        <SelectTrigger
+          id={id}
+          aria-labelledby={`${id}-label`}
+          className={orientation === "responsive" ? "w-full @sm/field-group:w-48" : "w-full"}
+        >
+          <SelectValue className="min-w-0">
+            <span className="truncate">{value}</span>
+          </SelectValue>
         </SelectTrigger>
         <SelectContent>
-          {choices.map((option) => (
-            <SelectItem key={option} value={option}>
-              {option}
-            </SelectItem>
-          ))}
+          <SelectGroup>
+            {choices.map((option) => (
+              <SelectItem key={option} value={option}>
+                {option}
+              </SelectItem>
+            ))}
+          </SelectGroup>
         </SelectContent>
       </Select>
-    </div>
+    </Field>
   );
 }

@@ -79,9 +79,7 @@ summary {
 .meta,
 .original,
 .empty,
-.list-status,
-#cache-size,
-.setting-description {
+.list-status {
   color: var(--muted-foreground);
 }
 #updated-at,
@@ -246,34 +244,27 @@ summary {
 .settings-header {
   margin-bottom: 20px;
 }
-#settings fieldset {
-  min-width: 0;
-  margin-block: 20px;
-  padding: 4px 16px 12px;
+.settings-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+.settings-group {
+  gap: 0;
+  padding-inline: 16px;
   border: 1px solid var(--border);
   border-radius: var(--radius-xl);
 }
-#settings legend {
-  padding: 0 6px;
-  font-weight: 600;
+.settings-group > [data-slot="field"] {
+  padding-block: 14px;
 }
-.setting-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding-block: 10px;
-}
-.setting-row + .setting-row {
+.settings-group > [data-slot="field"] + [data-slot="field"] {
   border-top: 1px solid var(--border);
-}
-.setting-description,
-.settings-link {
-  font-size: 0.8125rem;
 }
 .settings-link {
   display: inline-flex;
   gap: 4px;
+  font-size: 0.8125rem;
 }
 .account-summary {
   display: flex;
@@ -297,14 +288,8 @@ summary {
   height: 100%;
   object-fit: cover;
 }
-[data-slot="select-trigger"] {
-  max-width: 65%;
-}
 @media (max-width: 440px) {
   .reader {
     padding-inline: max(12px, var(--safe-left, 0px)) max(12px, var(--safe-right, 0px));
-  }
-  .setting-row {
-    flex-wrap: wrap;
   }
 }

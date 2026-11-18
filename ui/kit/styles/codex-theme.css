@@ -98,6 +98,7 @@
   --color-warning: var(--warning);
   --color-warning-surface: var(--warning-surface);
   --color-warning-outline: var(--warning-outline);
+  --color-destructive-foreground: var(--destructive-foreground);
   --color-destructive-surface: var(--destructive-surface);
   --color-destructive-border: var(--destructive-border);
   --color-destructive-subtle: color-mix(in srgb, var(--destructive) 10%, transparent);
@@ -172,6 +173,7 @@
   --warning: #e25507;
   --warning-surface: #fff5f0;
   --warning-outline: rgb(226 85 7 / 15%);
+  --destructive-foreground: #b42320;
   --destructive-surface: #fff0f0;
   --destructive-border: rgb(224 46 42 / 15%);
 
@@ -220,6 +222,7 @@
   --warning: #ff8549;
   --warning-surface: #281105;
   --warning-outline: rgb(255 133 73 / 40%);
+  --destructive-foreground: #ff817e;
   --destructive-surface: #280b0a;
   --destructive-border: rgb(250 66 62 / 40%);
 
