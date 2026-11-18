@@ -42,19 +42,10 @@ summary {
   gap: 8px;
 }
 .masthead {
-  position: relative;
   justify-content: space-between;
   min-block-size: 64px;
   padding-block-start: 16px;
   gap: 12px;
-}
-.masthead[data-view="article"]::after {
-  content: "";
-  position: absolute;
-  inset-block-end: 0;
-  inset-inline: 0;
-  border-block-end: 1px solid var(--border);
-  pointer-events: none;
 }
 .brand {
   flex-shrink: 0;
@@ -101,15 +92,13 @@ summary {
 .rank {
   font-variant-numeric: tabular-nums;
 }
-#feed > .bar {
+.bar {
+  box-sizing: content-box;
+  min-block-size: calc(1.25rem + 12px);
   padding-block-start: 4px;
+}
+#feed > .bar {
   border-block-end: 1px solid var(--border);
-}
-#article {
-  --article-divider-gap: 24px;
-}
-#article > .bar {
-  padding-block-start: var(--article-divider-gap);
 }
 .sort {
   position: relative;
@@ -222,8 +211,7 @@ summary {
   margin-inline-start: 8px;
 }
 #story {
-  padding-block: 8px var(--article-divider-gap);
-  border-bottom: 1px solid var(--border);
+  padding-block: 8px 24px;
 }
 .settings-header h2,
 #story h2 {

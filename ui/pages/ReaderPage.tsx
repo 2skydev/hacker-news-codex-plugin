@@ -111,7 +111,7 @@ export function ReaderPage({
       {/* biome-ignore lint/a11y/useKeyWithClickEvents: Native links already dispatch click on keyboard activation. */}
       <main className="reader" onClick={(event) => interceptLink(event, notify)}>
         {!settings && (
-          <header className="masthead" data-view={thread ? "article" : "feed"}>
+          <header className="masthead">
             <div className="brand">
               <span className="mark" aria-hidden="true">
                 Y
