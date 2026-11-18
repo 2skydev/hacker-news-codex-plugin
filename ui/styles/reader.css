@@ -210,42 +210,245 @@ summary {
   gap: 16px;
   font-size: 0.8125rem;
 }
-#comments-heading {
+.discussion {
+  --comment-avatar-size: 28px;
+  --comment-avatar-gap: 8px;
+  --comment-gutter: calc(var(--comment-avatar-size) + var(--comment-avatar-gap));
+  --thread-axis: calc(var(--comment-avatar-size) / 2);
+  --thread-line: color-mix(in srgb, var(--foreground) 20%, var(--background));
+  --branch-gap: 16px;
+  --thread-bend-radius: min(14px, var(--branch-gap));
+  --reply-indent: calc(var(--thread-axis) + var(--branch-gap));
   margin-top: 20px;
 }
-.comment {
-  padding-block: 12px;
-  border-bottom: 1px solid var(--border);
+#comments-heading {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 12px;
 }
-/* biome-ignore lint/style/noDescendingSpecificity: The story and comment metadata selectors apply to separate elements. */
-.comment .meta {
-  margin: 0 0 4px;
+.comment-count {
+  color: var(--muted-foreground);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
 }
-.comment .meta strong {
+.comment-list {
+  list-style: none;
+}
+.root-comments > .comment {
+  padding-block: 14px;
+}
+.root-comments > .comment:first-child {
+  padding-block-start: 0;
+}
+.root-comments > .comment + .comment {
+  border-block-start: 1px solid var(--border);
+}
+.comment-meta,
+.comment-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.comment-header {
+  display: grid;
+  grid-template-columns: var(--comment-avatar-size) minmax(0, 1fr);
+  align-items: start;
+  gap: var(--comment-avatar-gap);
+  margin-block-end: 2px;
+}
+.comment-meta {
+  flex-wrap: wrap;
+  gap: 0 8px;
+  font-size: 0.8125rem;
+}
+.comment-meta strong {
+  font-weight: 600;
+}
+.comment-avatar {
+  display: grid;
+  flex: none;
+  place-items: center;
+  inline-size: var(--comment-avatar-size);
+  block-size: var(--comment-avatar-size);
+  border-radius: 50%;
+  background: var(--secondary);
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.comment-author-badge {
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, #ff6600 13%, transparent);
+  font-size: 0.6875rem;
+  font-weight: 500;
+}
+.comment-link {
+  flex: none;
+  gap: 3px;
+  min-block-size: var(--comment-avatar-size);
+  border-radius: var(--radius-sm);
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+}
+.comment-link:hover {
+  color: var(--foreground);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.comment-link svg {
+  flex: none;
+  inline-size: 12px;
+  block-size: 12px;
+}
+.comment-content {
+  position: relative;
+}
+.comment-content > .body-text {
+  max-inline-size: 76ch;
+  margin-inline-start: var(--comment-gutter);
+  color: color-mix(in srgb, var(--foreground) 86%, var(--background));
+  line-height: 1.7;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+.comment-disclosure {
+  --reply-toggle-gap: 4px;
+  margin-block-start: var(--reply-toggle-gap);
+}
+.reply-toggle {
+  --reply-icon-size: 16px;
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--comment-avatar-size);
+  align-items: center;
+  gap: var(--comment-avatar-gap);
+  inline-size: fit-content;
+  min-block-size: 28px;
+  border-radius: var(--radius-md);
+  color: var(--muted-foreground);
+  list-style: none;
+  font-size: 0.75rem;
+  font-weight: 550;
+}
+.reply-toggle::-webkit-details-marker {
+  display: none;
+}
+.comment-disclosure:not([open]) > .reply-toggle {
+  grid-template-columns: var(--comment-avatar-size) auto;
+  padding-inline: var(--reply-indent) 4px;
+}
+.reply-toggle:hover,
+.reply-toggle:focus-visible,
+.comment-disclosure[open] > .reply-toggle {
   color: var(--foreground);
 }
-summary {
-  width: fit-content;
-  font-size: 0.8125rem;
-  margin-top: 6px;
+.reply-toggle:hover span {
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
-.replies,
-.body-text .original {
-  border-left: 1px solid var(--border);
-  padding-inline-start: 12px;
+.reply-toggle svg {
+  justify-self: center;
+  inline-size: var(--reply-icon-size);
+  block-size: var(--reply-icon-size);
 }
-.replies .comment:last-of-type {
-  border-bottom: 0;
+.comment-content::before,
+.reply-toggle::before,
+.reply-toggle::after {
+  position: absolute;
+  inset-inline-start: var(--thread-axis);
+  border-inline-start: 1px solid var(--thread-line);
+  pointer-events: none;
 }
-.replies .replies .replies .replies {
-  padding-inline-start: 4px;
+.comment-content::before {
+  inset-block-start: calc(var(--comment-avatar-size) + 3px);
+  inset-block-end: -1px;
 }
-/* biome-ignore lint/style/noDescendingSpecificity: The body-specific rule sets white-space and the shared rule sets layout. */
+.reply-toggle::before {
+  content: "";
+  inset-block-start: calc(-1 * var(--reply-toggle-gap));
+}
+.comment-disclosure:not([open]) > .reply-toggle::before {
+  inset-block-end: calc(50% - 1px);
+  inline-size: calc(var(--reply-indent) - var(--reply-icon-size) / 2 + 1px);
+  border-block-end: 1px solid var(--thread-line);
+  border-end-start-radius: var(--thread-bend-radius);
+}
+.comment-disclosure[open] > .reply-toggle::before {
+  inset-block-end: calc(50% + var(--reply-icon-size) / 2 - 1px);
+}
+.reply-toggle::after {
+  inset-block-start: calc(50% + var(--reply-icon-size) / 2 - 1px);
+  inset-block-end: -1px;
+}
+.comment:has(> .comment-disclosure) > .comment-content::before {
+  content: "";
+}
+.comment-disclosure[open]:has(> .replies > .comment-list) > .reply-toggle::after {
+  content: var(--stem-content, "");
+}
+.replies {
+  --reply-space: 10px;
+  margin-inline-start: var(--reply-indent);
+}
+.replies > .comment-list > .comment {
+  position: relative;
+  padding-block-start: var(--reply-space);
+}
+.replies > .comment-list > .comment:where(:not(:last-child))::before,
+.replies > .comment-list > .comment::after {
+  content: var(--branch-content, "");
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: calc(-1 * var(--branch-gap));
+  border-inline-start: 1px solid var(--thread-line);
+  pointer-events: none;
+}
+.replies > .comment-list > .comment:where(:not(:last-child))::before {
+  inset-block-end: -1px;
+}
+.replies > .comment-list > .comment::after {
+  inline-size: var(--branch-gap);
+  block-size: calc(var(--reply-space) + var(--thread-axis) + 1px);
+  border-block-end: 1px solid var(--thread-line);
+  border-end-start-radius: var(--thread-bend-radius);
+}
+:where(.replies .replies) .replies {
+  --stem-content: none;
+}
+:where(.replies .replies .replies) .replies {
+  --branch-content: none;
+  margin-block-start: 4px;
+  margin-inline-start: 0;
+  border-block-start: 1px solid var(--border);
+}
+.comment-more[data-slot] {
+  display: flex;
+  margin: 12px auto 0;
+}
+.replies .comment-more[data-slot] {
+  margin-inline: var(--comment-gutter) 0;
+}
+.discussion .list-status {
+  padding-block: 8px;
+}
+.replies .list-status {
+  padding-inline-start: var(--comment-gutter);
+}
 .original {
   display: block;
   margin-top: 4px;
   font-size: 0.8125rem;
   font-weight: 430;
+}
+.body-text .original {
+  border-inline-start: 1px solid var(--border);
+  padding-inline-start: 12px;
+}
+.comment-content > .body-text .original {
+  margin-top: 8px;
 }
 #settings {
   max-width: 36rem;
@@ -306,5 +509,8 @@ summary {
 @media (max-width: 440px) {
   .reader {
     padding-inline: max(12px, var(--safe-left, 0px)) max(12px, var(--safe-right, 0px));
+  }
+  .discussion {
+    --branch-gap: 12px;
   }
 }
