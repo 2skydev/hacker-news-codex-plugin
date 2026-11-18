@@ -41,14 +41,20 @@ summary {
   align-items: center;
   gap: 8px;
 }
-.masthead,
-.bar {
-  justify-content: space-between;
-}
 .masthead {
-  min-height: 48px;
-  border-bottom: 1px solid var(--border);
+  position: relative;
+  justify-content: space-between;
+  min-block-size: 64px;
+  padding-block-start: 16px;
   gap: 12px;
+}
+.masthead[data-view="article"]::after {
+  content: "";
+  position: absolute;
+  inset-block-end: 0;
+  inset-inline: 0;
+  border-block-end: 1px solid var(--border);
+  pointer-events: none;
 }
 .brand {
   flex-shrink: 0;
@@ -73,6 +79,10 @@ summary {
   justify-content: flex-end;
   flex-wrap: wrap;
 }
+.masthead-buttons {
+  display: flex;
+  gap: 2px;
+}
 #updated-at,
 .rank,
 .title-domain,
@@ -91,34 +101,49 @@ summary {
 .rank {
   font-variant-numeric: tabular-nums;
 }
-.bar {
-  min-height: 48px;
+#feed > .bar {
+  padding-block-start: 4px;
+  border-block-end: 1px solid var(--border);
+}
+#article {
+  --article-divider-gap: 24px;
+}
+#article > .bar {
+  padding-block-start: var(--article-divider-gap);
 }
 .sort {
-  display: inline-flex;
-  gap: 2px;
-  height: 28px;
-  padding: 2px;
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--underlay-background) 92%, transparent);
+  position: relative;
+  display: inline-grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
 }
 .sort button {
-  border: 1px solid transparent;
   border-radius: var(--radius-md);
-  padding: 2px 8px;
-  font-size: 0.75rem;
+  padding: 6px 4px;
+  font-size: 0.875rem;
   color: var(--muted-foreground);
-  line-height: 1rem;
+  line-height: 1.25rem;
+  white-space: nowrap;
 }
 .sort button:hover,
-.updates:hover {
-  background: var(--accent);
-}
 .sort button[aria-pressed="true"] {
   color: var(--foreground);
-  background: var(--popover);
-  border-color: var(--border);
-  box-shadow: var(--shadow-sm);
+}
+#feed-sort-indicator {
+  position: absolute;
+  inset-block-end: -1px;
+  inset-inline: 0;
+  grid-row: 1 / 2;
+  grid-column: 1 / 2;
+  border-block-end: 2px solid var(--foreground);
+  border-radius: 2px;
+  pointer-events: none;
+}
+.sort[data-sort="new"] #feed-sort-indicator {
+  grid-column: 2 / 3;
+}
+.updates:hover {
+  background: var(--accent);
 }
 .stories {
   margin: 0;
@@ -126,6 +151,7 @@ summary {
   list-style: none;
 }
 #feed {
+  --feed-content-gap: 12px;
   position: relative;
 }
 .feed-exits {
@@ -140,8 +166,7 @@ summary {
   grid-template-columns: 24px minmax(0, 1fr);
   align-items: baseline;
   gap: 8px;
-  padding: 12px 4px;
-  border-bottom: 1px solid var(--border);
+  padding: var(--feed-content-gap) 4px;
 }
 .story-title {
   text-align: start;
@@ -157,13 +182,24 @@ summary {
   gap: 4px 12px;
   margin-top: 4px;
 }
-.meta button:hover,
+.count {
+  position: relative;
+}
+.count:hover::after {
+  content: "";
+  position: absolute;
+  inset-block-end: 1px;
+  inset-inline: 0;
+  border-block-end: 1px solid currentColor;
+  pointer-events: none;
+}
 .story-title:hover,
 .settings-link:hover {
   text-decoration: underline;
 }
 .updates {
   width: 100%;
+  margin-block-start: var(--feed-content-gap);
   background: var(--secondary);
   border-radius: var(--radius-md);
   padding: 6px 12px;
@@ -178,12 +214,15 @@ summary {
   padding-block: 16px;
   font-size: 0.8125rem;
 }
+#feed > .empty {
+  padding-block-start: var(--feed-content-gap);
+}
 .retry {
   text-decoration: underline;
   margin-inline-start: 8px;
 }
 #story {
-  padding-block: 12px 24px;
+  padding-block: 8px var(--article-divider-gap);
   border-bottom: 1px solid var(--border);
 }
 .settings-header h2,

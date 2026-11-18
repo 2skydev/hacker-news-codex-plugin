@@ -5,6 +5,7 @@ import type { Item, Preferences, Sort } from "../../shared/types/reader.types.ts
 import { Article } from "../components/discussion/Article.tsx";
 import { Feed } from "../components/feed/Feed.tsx";
 import { UpdatedAt } from "../components/feed/UpdatedAt.tsx";
+import { LanguageButton } from "../components/translation/LanguageButton.tsx";
 import { LanguageContext } from "../contexts/language-context.ts";
 import type { useAccount } from "../hooks/use-account.ts";
 import { useDiscussion, visibleText } from "../hooks/use-discussion.ts";
@@ -110,7 +111,7 @@ export function ReaderPage({
       {/* biome-ignore lint/a11y/useKeyWithClickEvents: Native links already dispatch click on keyboard activation. */}
       <main className="reader" onClick={(event) => interceptLink(event, notify)}>
         {!settings && (
-          <header className="masthead">
+          <header className="masthead" data-view={thread ? "article" : "feed"}>
             <div className="brand">
               <span className="mark" aria-hidden="true">
                 Y
@@ -119,19 +120,22 @@ export function ReaderPage({
             </div>
             <div className="masthead-actions">
               {!thread && !settings && feed.updatedAt && <UpdatedAt stamp={feed.updatedAt} />}
-              <Button
-                id="open-settings"
-                ref={gear}
-                variant="ghost"
-                size="icon"
-                aria-label="설정"
-                title="설정"
-                aria-expanded={settings}
-                aria-controls="settings"
-                onClick={toggleSettings}
-              >
-                <SettingsIcon />
-              </Button>
+              <div className="masthead-buttons">
+                <LanguageButton />
+                <Button
+                  id="open-settings"
+                  ref={gear}
+                  variant="ghost"
+                  size="icon"
+                  aria-label="설정"
+                  title="설정"
+                  aria-expanded={settings}
+                  aria-controls="settings"
+                  onClick={toggleSettings}
+                >
+                  <SettingsIcon />
+                </Button>
+              </div>
             </div>
           </header>
         )}

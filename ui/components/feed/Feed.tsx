@@ -1,11 +1,12 @@
+import { flushSync } from "react-dom";
 import { Button } from "@/components/ui/button";
 import type { Item, Sort } from "../../../shared/types/reader.types.ts";
 import { FEED_TABS } from "../../constants/feed.constants.ts";
 import type { useFeed } from "../../hooks/use-feed.ts";
+import { canAnimateFeed } from "../../lib/feed-motion.ts";
 import { numbers, since } from "../../lib/format.ts";
 import { externalUrl } from "../../lib/links.ts";
 import { AnimatedCount } from "../AnimatedCount.tsx";
-import { LanguageButton } from "../translation/LanguageButton.tsx";
 import { TranslatedField } from "../translation/TranslatedField.tsx";
 
 type OpenStory = (item: Item, trigger: HTMLButtonElement) => void;
@@ -96,22 +97,46 @@ export function Feed({
   const newCount = feed.pending?.items.filter(
     (item) => !feed.items.some((old) => old.id === item.id),
   ).length;
+
+  function selectSort(next: Sort) {
+    if (next === sort) return;
+
+    const from = canAnimateFeed()
+      ? document.getElementById("feed-sort-indicator")?.getBoundingClientRect().left
+      : undefined;
+
+    // The sort change remounts the reader with a fresh feed state.
+    flushSync(() => changeSort(next));
+    document
+      .querySelector<HTMLButtonElement>('.sort button[aria-pressed="true"]')
+      ?.focus({ preventScroll: true });
+
+    const indicator = document.getElementById("feed-sort-indicator");
+    if (from === undefined || !indicator) return;
+
+    const offset = from - indicator.getBoundingClientRect().left;
+    indicator.animate(
+      { transform: [`translateX(${offset}px)`, "none"] },
+      { duration: 180, easing: "cubic-bezier(0.22, 1, 0.36, 1)" },
+    );
+  }
+
   return (
     <section id="feed" aria-label="뉴스 피드">
       <div className="bar">
-        <nav className="sort" aria-label="글 정렬">
+        <nav className="sort" aria-label="글 정렬" data-sort={sort}>
           {FEED_TABS.map(([key, label]) => (
             <button
               type="button"
               key={key}
               aria-pressed={sort === key}
-              onClick={() => changeSort(key)}
+              onClick={() => selectSort(key)}
             >
               {label}
             </button>
           ))}
+          <span id="feed-sort-indicator" aria-hidden="true" />
         </nav>
-        <LanguageButton />
       </div>
       {feed.pending && (
         <button

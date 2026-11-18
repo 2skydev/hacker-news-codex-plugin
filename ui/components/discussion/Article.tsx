@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import type { Thread, useDiscussion } from "../../hooks/use-discussion.ts";
 import { numbers, since } from "../../lib/format.ts";
 import { externalUrl, hnUrl } from "../../lib/links.ts";
-import { LanguageButton } from "../translation/LanguageButton.tsx";
 import { TranslatedField } from "../translation/TranslatedField.tsx";
 
 interface CommentListProps extends Pick<ReturnType<typeof useDiscussion>, "more" | "toggle"> {
@@ -123,10 +122,9 @@ export function Article({ thread, more, toggle, back }: ArticleProps) {
   return (
     <article id="article">
       <div className="bar">
-        <Button id="back" variant="ghost" size="sm" onClick={back}>
+        <Button id="back" variant="link" size="sm" className="h-auto border-0 p-0" onClick={back}>
           ← 목록으로
         </Button>
-        <LanguageButton />
       </div>
       <div id="story">
         <h2>
