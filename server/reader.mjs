@@ -2,10 +2,10 @@ import { readFile } from "node:fs/promises";
 import { McpServer } from "@modelcontextprotocol/server";
 import { serveStdio } from "@modelcontextprotocol/server/stdio";
 import { z } from "zod";
-import { accountStatus, beginSignIn, listModels, signOut } from "./account.ts";
+import { accountStatus, beginSignIn, listModels, signOut } from "./account.mjs";
 import { feed, service, story, translate, watch } from "./news.mjs";
 
-const version = "0.3.8";
+const version = "0.3.9";
 const uri = "ui://hacker-news/reader-v1";
 const mimeType = "text/html;profile=mcp-app";
 const html = await readFile(new URL("./reader.html", import.meta.url), "utf8");

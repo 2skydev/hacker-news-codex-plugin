@@ -4,9 +4,12 @@ import type { MouseEvent } from "react";
 import type { McpUiHostContext } from "@modelcontextprotocol/ext-apps";
 import type { Notify, Preview, PreviewArgs, Tools } from "./types";
 
-const app = new App({ name: "hacker-news", version: "0.3.8" }, {}, { autoResize: false });
+const app = new App({ name: "hacker-news", version: "0.3.9" }, {}, { autoResize: false });
 function theme(context?: McpUiHostContext) {
-  if (context?.theme) applyDocumentTheme(context.theme);
+  if (context?.theme) {
+    applyDocumentTheme(context.theme);
+    document.documentElement.classList.toggle("dark", context.theme === "dark");
+  }
   if (context?.styles?.variables) applyHostStyleVariables(context.styles.variables);
   for (const [side, size] of Object.entries(context?.safeAreaInsets || {}))
     document.documentElement.style.setProperty("--safe-" + side, size + "px");

@@ -1,4 +1,5 @@
 import { createContext, useContext } from "react";
+import { Button } from "@/components/ui/button";
 import { bodyContent } from "./links.js";
 
 import type { Item, Field as TextField, Translation, Sort } from "./types";
@@ -40,7 +41,7 @@ function Field({ item, field, domain }: { item: Item; field: TextField; domain?:
 }
 function LanguageButton() {
   const { bilingual, toggle } = useContext(Language);
-  return <button className="text-action" aria-pressed={bilingual} onClick={toggle}>{bilingual ? "영문 숨기기" : "영문 함께 보기"}</button>;
+  return <Button size="sm" variant="ghost" aria-pressed={bilingual} onClick={toggle}>{bilingual ? "영문 숨기기" : "영문 함께 보기"}</Button>;
 }
 function Row({ item, index, open }: { item: Item; index: number; open: OpenStory }) {
   const url = externalUrl(item.url);
@@ -66,7 +67,7 @@ export function Feed({ feed, sort, changeSort, open, hostError }: { feed: Return
     {(hostError || feed.error) ? <p className="empty" role="status">{hostError || feed.error}{!hostError && <button className="retry" onClick={() => feed.load(feed.retry)}>다시 시도</button>}</p> :
       !feed.items.length ? <p className="empty" role="status">{feed.revision && !feed.loading ? "표시할 글이 없습니다." : "글을 불러오는 중…"}</p> :
       !feed.revision && <p className="empty" role="status">저장된 글을 표시하고 있습니다. 새 글을 확인하는 중…</p>}
-    {feed.more && <button className="more" disabled={feed.loading} onClick={() => feed.load("more")}>글 더 보기</button>}
+    {feed.more && <Button variant="outline" className="more" disabled={feed.loading} onClick={() => feed.load("more")}>글 더 보기</Button>}
   </section>;
 }
 function CommentList({ id, discussion }: { id: number; discussion: Discussion }) {
@@ -83,13 +84,13 @@ function CommentList({ id, discussion }: { id: number; discussion: Discussion })
     </div>)}
     {list.error ? <p className="list-status">{list.error}<button className="retry" onClick={() => discussion.more(id)}>다시 시도</button></p> :
       list.loading ? !list.preview?.length && <p className="list-status">댓글을 불러오는 중…</p> :
-      list.more ? <button className="more" onClick={() => discussion.more(id)}>댓글 더 보기</button> :
+      list.more ? <Button variant="outline" className="more" onClick={() => discussion.more(id)}>댓글 더 보기</Button> :
       !list.comments.length && <p className="empty">아직 표시할 댓글이 없습니다.</p>}
   </>;
 }
 export function Article({ discussion, back }: { discussion: Discussion; back: () => void }) {
   const { item } = discussion.thread!, url = externalUrl(item.url);
-  return <article id="article"><div className="bar"><button id="back" className="text-action" onClick={back}>← 목록으로</button><LanguageButton /></div>
+  return <article id="article"><div className="bar"><Button id="back" variant="ghost" size="sm" onClick={back}>← 목록으로</Button><LanguageButton /></div>
     <div id="story"><h2><Field item={item} field="title" /></h2>
       <div className="meta"><span className="source">{url?.hostname.replace(/^www\./, "") || "Hacker News"}</span>
         {item.by && <span>{item.by}</span>}<span>{since(item.time)}</span>{item.score != null && <span>{numbers.format(item.score)}점</span>}</div>

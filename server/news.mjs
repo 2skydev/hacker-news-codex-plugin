@@ -122,7 +122,7 @@ export function createNewsService({
   request = fetchJson,
   streamRequest = fetch,
   watchTimeout = 20000,
-  runTranslation = async (entries, model) => (await import('./account.ts')).translateBatch(entries, model),
+  runTranslation = async (entries, model) => (await import('./account.mjs')).translateBatch(entries, model),
   directory = process.env.HN_DATA_DIR || join(homedir(), '.local', 'share', 'hacker-news'),
   now = Date.now,
 } = {}) {

@@ -1,7 +1,11 @@
 import { createCipheriv, createDecipheriv, randomBytes } from 'node:crypto'
 import { execFile } from 'node:child_process'
 
-import type { CredentialEncryption } from 'sign-in-with-chatgpt/packages/local/src/types'
+export interface CredentialEncryption {
+  id: string
+  encrypt(plaintext: string): Promise<Uint8Array>
+  decrypt(bytes: Uint8Array): Promise<string>
+}
 
 const service = 'dev.2sky.hacker-news.chatgpt'
 const account = 'credential-encryption-v1'
@@ -34,7 +38,6 @@ async function key(create: boolean) {
 
 export const credentialEncryption: CredentialEncryption = {
   id: 'macos-keychain-aes256gcm-v1',
-  isAvailable: () => process.platform === 'darwin',
   async encrypt(plaintext) {
     const iv = randomBytes(12)
     const cipher = createCipheriv('aes-256-gcm', await key(true), iv)

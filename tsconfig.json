@@ -18,8 +18,8 @@
       "node"
     ],
     "paths": {
-      "@siwc/react/*": [
-        "./node_modules/sign-in-with-chatgpt/packages/react/src/*"
+      "@/*": [
+        "./ui/kit/*"
       ]
     }
   },

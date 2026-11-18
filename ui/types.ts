@@ -1,5 +1,3 @@
-import type { SessionState } from "sign-in-with-chatgpt/packages/local/src/types";
-
 export type Sort = "top" | "new";
 export type Field = "title" | "text";
 export interface Item {
@@ -29,7 +27,9 @@ export interface FeedPage {
 }
 export interface StoryPage { item: Item; comments: Item[]; nextOffset: number; hasMore: boolean }
 export interface Preview<T> { page?: T; updatedAt?: number; titles?: Pick<Item, "id" | "title" | "titleKo">[] }
-export interface Account extends Pick<SessionState, "status" | "sharing" | "identity" | "profileId"> {
+export interface Account {
+  label?: string;
+  profileId?: string;
   connected: boolean;
   pending: boolean;
   error?: string;

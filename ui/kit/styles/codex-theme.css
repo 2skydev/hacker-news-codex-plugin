@@ -1,0 +1,285 @@
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  /* shadcn 기본 색상 매핑 */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* shadcn 차트 팔레트 */
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  /* shadcn Sidebar 컴포넌트 */
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  /* 기본값 변경: 타이포그래피 */
+  --text-xs: 0.75rem;
+  --text-xs--line-height: calc(1 / 0.75);
+  --text-sm: 0.8125rem;
+  --text-sm--line-height: calc(1.125 / 0.8125);
+  --text-base: 0.875rem;
+  --text-base--line-height: calc(1.25 / 0.875);
+  --text-lg: 1rem;
+  --text-lg--line-height: calc(1.5 / 1);
+  --text-xl: 1.125rem;
+  --text-xl--line-height: calc(1.75 / 1.125);
+  --text-2xl: 1.25rem;
+  --text-2xl--line-height: calc(1.75 / 1.25);
+  --text-3xl: 1.5rem;
+  --text-3xl--line-height: calc(2 / 1.5);
+  --text-4xl: 1.875rem;
+  --text-4xl--line-height: calc(2.25 / 1.875);
+  --text-5xl: 2.25rem;
+  --text-5xl--line-height: calc(2.5 / 2.25);
+  --text-6xl: 3rem;
+  --text-6xl--line-height: calc(3 / 3);
+  --text-7xl: 3.75rem;
+  --text-7xl--line-height: calc(3.75 / 3.75);
+  --text-8xl: 4.5rem;
+  --text-8xl--line-height: calc(4.5 / 4.5);
+  --text-9xl: 6rem;
+  --text-9xl--line-height: calc(6 / 6);
+  --font-weight-base: 430;
+
+  /* 기본값 변경: 반경 스케일과 고정 반경 */
+  --radius-xs: calc(0.25rem * var(--corner-radius-scale));
+  --radius-sm: calc(0.375rem * var(--corner-radius-scale));
+  --radius-md: calc(0.5rem * var(--corner-radius-scale));
+  --radius-lg: calc(0.625rem * var(--corner-radius-scale));
+  --radius-xl: calc(0.75rem * var(--corner-radius-scale));
+  --radius-2xl: calc(1rem * var(--corner-radius-scale));
+  --radius-3xl: calc(1.25rem * var(--corner-radius-scale));
+  --radius-4xl: calc(1.5rem * var(--corner-radius-scale));
+  --radius-page: 0.75rem;
+
+  /* 기본값 변경: 그림자 스케일과 팝업 그림자 */
+  --shadow-sm: 0 1px 2px -1px #00000014;
+  --shadow-md: 0 2px 4px -1px #00000014;
+  --shadow-lg: 0 4px 8px -2px #0000001a;
+  --shadow-xl: 0 8px 16px -4px #0000001f;
+  --shadow-2xl: 0 16px 32px -8px #00000030;
+  --shadow-popup: 0 0 0 0.5px var(--border), 0 8px 16px -4px #0000001f;
+
+  /* 추가 항목: 보조 표면 */
+  --color-underlay-background: var(--underlay-background);
+
+  /* 추가 항목: 성공, 경고, 오류 상태 */
+  --color-success: var(--success);
+  --color-success-surface: var(--success-surface);
+  --color-warning: var(--warning);
+  --color-warning-surface: var(--warning-surface);
+  --color-warning-outline: var(--warning-outline);
+  --color-destructive-surface: var(--destructive-surface);
+  --color-destructive-border: var(--destructive-border);
+  --color-destructive-subtle: color-mix(
+    in srgb,
+    var(--destructive) 10%,
+    transparent
+  );
+  --color-destructive-hover: color-mix(
+    in srgb,
+    var(--destructive) 18%,
+    transparent
+  );
+  --color-destructive-menu-hover: color-mix(
+    in srgb,
+    var(--destructive) 12%,
+    transparent
+  );
+
+  /* 추가 항목: 입력과 선택 컨트롤 */
+  --color-control-surface: var(--control-surface);
+  --color-control-soft: var(--control-soft);
+  --color-checkbox-border: var(--checkbox-border);
+  --color-checkbox-hover: var(--checkbox-hover);
+  --color-switch-accent: var(--switch-accent);
+  --color-switch-thumb: #ffffff;
+
+  /* 추가 항목: 데스크톱 레일, 툴바 */
+  --color-desktop-layout-background: var(--desktop-layout-background);
+}
+
+/* 라이트 테마: 각 블록은 shadcn 공통 항목 → 기본값 변경과 추가 항목 순서. 디자인 근거: docs/provenance.md. */
+:root {
+  /* shadcn 기본 색상: 값은 Codex 테마에 맞게 조정 */
+  --background: #ffffff;
+  --foreground: #1a1c1f;
+  --card: var(--background);
+  --card-foreground: var(--foreground);
+  --popover: #ffffff;
+  --popover-foreground: var(--foreground);
+  --primary: var(--foreground);
+  --primary-foreground: #ffffff;
+  --secondary: color-mix(in oklab, var(--foreground) 5%, transparent);
+  --secondary-foreground: var(--foreground);
+  --muted: var(--secondary);
+  --muted-foreground: color-mix(in srgb, var(--foreground) 65%, transparent);
+  --accent: rgb(26 28 31 / 5.3%);
+  --accent-foreground: var(--foreground);
+  --destructive: #e02e2a;
+  --border: rgb(26 28 31 / 7.8%);
+  --input: rgb(26 28 31 / 11.7%);
+  --ring: #339cff;
+
+  /* shadcn 차트 팔레트: 사용자 지정 색상 */
+  --chart-1: oklch(0.6772 0.1571 35.19);
+  --chart-2: oklch(0.6309 0.1013 183.49);
+  --chart-3: oklch(0.3787 0.044 225.54);
+  --chart-4: oklch(0.8336 0.1186 88.15);
+  --chart-5: oklch(0.7834 0.1261 58.75);
+
+  /* 공용 Sidebar의 불투명 배경. DesktopShell에서만 반투명으로 재정의 */
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: var(--accent);
+  --sidebar-accent-foreground: var(--foreground);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
+
+  /* shadcn 기본 반경 진입점: 실제 스케일은 위 Codex 반경 매핑 참조 */
+  --radius: var(--radius-md);
+
+  /* 추가 항목: 곡률, 팝업 테두리 두께 */
+  --corner-radius-scale: 1;
+  --corner-shape: round;
+  --overlay-ring-width: 0.5px;
+
+  /* 추가 항목: 보조 표면 */
+  --underlay-background: #f6f6f6;
+
+  /* 추가 항목: 성공, 경고, 오류 상태 */
+  --success: #00a240;
+  --success-surface: #edfaf2;
+  --warning: #e25507;
+  --warning-surface: #fff5f0;
+  --warning-outline: rgb(226 85 7 / 15%);
+  --destructive-surface: #fff0f0;
+  --destructive-border: rgb(224 46 42 / 15%);
+
+  /* 추가 항목: 입력과 선택 컨트롤 */
+  --control-surface: rgb(255 255 255 / 96%);
+  --control-soft: rgb(255 255 255 / 96%);
+  --control-disabled-opacity: 0.4;
+  --checkbox-border: #cdcdcd;
+  --checkbox-hover: color-mix(in oklab, #ededed 40%, transparent);
+  --switch-accent: #339cff;
+
+  /* 추가 항목: 데스크톱 레일, 툴바 */
+  /* Electron 기본 배경: OS 재질이 아래로 비치도록 실제 알파 사용. */
+  --desktop-layout-background: rgb(246 246 246 / 85%);
+}
+
+/* 다크 테마: 라이트 테마에서 달라지는 값만 재정의 */
+.dark {
+  /* shadcn 기본 색상: 값은 Codex 테마에 맞게 조정 */
+  --background: #181818;
+  --foreground: #dfdfdf;
+  --popover: #2d2d2d;
+  --primary-foreground: #2d2d2d;
+  --secondary: color-mix(in oklab, #ffffff 5%, transparent);
+  --muted-foreground: color-mix(in srgb, var(--foreground) 65%, transparent);
+  --accent: rgb(255 255 255 / 7.8%);
+  --destructive: #ff6764;
+  --border: rgb(255 255 255 / 8.4%);
+  --input: rgb(255 255 255 / 15.6%);
+  --ring: rgb(131 195 255 / 76%);
+  --sidebar: #262626;
+
+  /* shadcn 차트 팔레트: 사용자 지정 색상 */
+  --chart-1: oklch(0.5292 0.1931 262.13);
+  --chart-2: oklch(0.6983 0.1337 165.46);
+  --chart-3: oklch(0.7232 0.15 60.63);
+  --chart-4: oklch(0.6192 0.2037 312.73);
+  --chart-5: oklch(0.6123 0.2093 6.39);
+
+  /* 추가 항목: 보조 표면 */
+  --underlay-background: #141414;
+
+  /* 추가 항목: 성공, 경고, 오류 상태 */
+  --success: #40c977;
+  --success-surface: #011c0b;
+  --warning: #ff8549;
+  --warning-surface: #281105;
+  --warning-outline: rgb(255 133 73 / 40%);
+  --destructive-surface: #280b0a;
+  --destructive-border: rgb(250 66 62 / 40%);
+
+  /* 추가 항목: 입력과 선택 컨트롤 */
+  --control-surface: rgb(45 45 45 / 96%);
+  --control-soft: rgb(255 255 255 / 3.2%);
+  --checkbox-border: #5d5d5d;
+  --checkbox-hover: #282828;
+
+  /* 추가 항목: 데스크톱 레일, 툴바 */
+  --desktop-layout-background: rgb(40 40 40 / 80%);
+}
+
+/* 추가 항목: 지원 브라우저에서 superellipse 모서리 적용 */
+@supports (corner-shape: superellipse(1.5)) {
+  :root {
+    --corner-radius-scale: 1.25;
+    --corner-shape: superellipse(1.5);
+  }
+
+  .rounded-md,
+  .rounded-lg,
+  .rounded-xl,
+  .rounded-2xl,
+  .rounded-3xl,
+  .rounded-4xl {
+    corner-shape: var(--corner-shape);
+  }
+}
+
+@layer base {
+  /* shadcn 공통 테두리, 포커스 기본값 */
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  /* 기본값 변경: 기본 글꼴, 크기, 굵기와 페이지 표면 */
+  body {
+    @apply m-0 bg-background font-sans text-base leading-normal font-base text-foreground antialiased;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none;
+    transition-property: opacity, color, background-color;
+    scroll-behavior: auto;
+  }
+}

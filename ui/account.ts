@@ -18,7 +18,7 @@ export function useAccount(ready: boolean, notify: Notify) {
       accept(next);
       if (next.error && before?.error !== next.error) notify(next.error);
       else if (before?.pending && !next.pending && next.connected) notify("ChatGPT를 연결했습니다.");
-      else if (!before && next.status === "disconnected") notify("한국어 번역은 오른쪽 위 설정에서 ChatGPT를 연결하면 시작됩니다.");
+      else if (!before && !next.connected && !next.pending) notify("한국어 번역은 오른쪽 위 설정에서 ChatGPT를 연결하면 시작됩니다.");
     } catch {
       if (!last.current && version.current === request) notify("ChatGPT 연결 상태를 확인하지 못했습니다.");
     }
@@ -41,7 +41,7 @@ export function useAccount(ready: boolean, notify: Notify) {
       if (connect) {
         const { url } = await call("hn_connect");
         if (URL.parse(url)?.origin !== "https://auth.openai.com") throw new Error("로그인 주소를 확인하지 못했습니다.");
-        accept({ ...last.current, status: "connecting", sharing: false, pending: true, connected: false, url });
+        accept({ connected: false, ...last.current, pending: true, url });
         await openLink(url);
       } else {
         const wasPending = last.current?.pending;
