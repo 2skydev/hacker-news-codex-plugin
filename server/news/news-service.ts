@@ -108,7 +108,7 @@ export function createNewsService({
   directory = process.env.HN_DATA_DIR || join(homedir(), ".local", "share", "hacker-news"),
   now = Date.now,
 }: NewsServiceOptions = {}) {
-  const db = openCache(directory);
+  const db = openCache(directory, now);
   const recent = new Map<string, { value: unknown; until: number }>();
   const loading = new Map<string, Promise<unknown>>();
   const watching = new Map<string, ReturnType<typeof watchRankings>>();
@@ -151,7 +151,7 @@ export function createNewsService({
     for (const field of ["title", "text"] as const) {
       const source = item[field];
       if (!source) continue;
-      const cached = db.read.get(item.id, field, signature(source)) as { ko: string } | undefined;
+      const cached = db.read(item.id, field, signature(source));
       if (cached) result[`${field}Ko`] = cached.ko;
     }
     return result;
@@ -319,9 +319,7 @@ export function createNewsService({
     const active = new Map<string, TranslationResult | Promise<TranslationResult>>();
     const missing: TranslationSource[] = [];
     for (const source of sources) {
-      const existing = db.read.get(source.id, field, source.fingerprint) as
-        | { ko: string }
-        | undefined;
+      const existing = db.read(source.id, field, source.fingerprint);
       const pending = translating.get(source.key);
       if (existing) active.set(source.key, { id: source.id, text: existing.ko });
       else if (pending) active.set(source.key, pending);

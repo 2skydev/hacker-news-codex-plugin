@@ -8,10 +8,13 @@ export const CACHE_PERIODS = {
   "7일보다 오래됨": -7,
   "30일보다 오래됨": -30,
 } as const;
+export const CACHE_RETENTION_DAYS = [1, 2, 3, 5, 7, 30] as const;
 export const AUTO_MODEL = "자동";
 export const DEFAULT_PREFERENCES = {
   model: AUTO_MODEL,
   realtime: true,
   cacheField: "모든 번역",
   cachePeriod: "전체 기간",
+  cacheAutoDelete: true,
+  cacheRetentionDays: 7,
 } as const;

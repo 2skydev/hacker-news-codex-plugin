@@ -227,6 +227,8 @@ test("캐시 용량은 UTF-8 번역문 크기이며 선택한 기간과 종류�
     model: "자동",
     cacheField: "모든 번역",
     cachePeriod: "전체 기간",
+    cacheAutoDelete: true,
+    cacheRetentionDays: 7,
   });
   assert.equal(prefs.clear("all", 0, Date.now()).removed, 1);
   assert.equal(prefs.stats().bytes, 0);
@@ -271,9 +273,12 @@ test("기존 캐시의 저장일을 추정하지 않고 전체 기간에서만 �
   old.close();
   const prefs = openCache(dir);
   t.after(() => prefs.close());
+  assert.equal(prefs.values().cacheAutoDelete, true);
+  assert.equal(prefs.values().cacheRetentionDays, 7);
+  assert.equal(prefs.stats().count, 1);
   assert.equal(prefs.clear("all", 30, Date.now()).removed, 0);
   assert.equal(prefs.clear("all", -30, Date.now()).removed, 0);
-  assert.equal(prefs.read.get(1, "title", "old")?.ko, "이전 번역");
+  assert.equal(prefs.read(1, "title", "old")?.ko, "이전 번역");
   assert.equal(prefs.clear("title", 0, Date.now()).removed, 1);
 });
 
@@ -286,6 +291,7 @@ test("30일보다 오래된 캐시만 삭제하고 경계 시각과 다른 종�
   });
   const now = Date.now(),
     cutoff = now - 30 * 86400000;
+  prefs.update({ cacheAutoDelete: false });
   for (const [id, field, time] of [
     [1, "title", cutoff - 1],
     [2, "title", cutoff],
@@ -293,8 +299,21 @@ test("30일보다 오래된 캐시만 삭제하고 경계 시각과 다른 종�
   ])
     prefs.write.run(id, field, "key", "번역", time, 0);
   assert.equal(prefs.clear("title", -30, now).removed, 1);
-  assert.ok(prefs.read.get(2, "title", "key"));
-  assert.ok(prefs.read.get(3, "text", "key"));
+  assert.ok(prefs.read(2, "title", "key"));
+  assert.ok(prefs.read(3, "text", "key"));
+});
+
+test("보관 기간을 넘긴 번역은 다시 읽지 않고 재시작 시 디스크에서 삭제한다", async (t) => {
+  const { service, open, advance, calls } = fixture(t);
+  const translateTitle = () => service.translate({ ids: [3], field: "title" });
+  await translateTitle();
+  advance(7 * 86400000);
+  assert.ok((await service.story({ id: 3 })).item.titleKo);
+  advance(1);
+  assert.equal((await service.story({ id: 3 })).item.titleKo, undefined);
+  assert.equal(open().preferences.clear("all", 0, Date.now()).removed, 0);
+  await translateTitle();
+  assert.equal(calls.length, 2);
 });
 
 test("재시작 뒤에도 원문 요청 없이 목록과 댓글의 현재 번역 캐시를 읽는다", async (t) => {

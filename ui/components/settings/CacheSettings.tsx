@@ -14,10 +14,21 @@ import {
   FieldContent,
   FieldDescription,
   FieldGroup,
+  FieldLabel,
   FieldLegend,
   FieldSet,
   FieldTitle,
 } from "@/components/ui/field";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { CACHE_RETENTION_DAYS } from "../../../shared/constants/settings.constants.ts";
 import { formatCacheBytes } from "../../../shared/lib/format-cache-bytes.ts";
 import type { Preferences, SettingsData } from "../../../shared/types/reader.types.ts";
 import { AnimatedCount } from "../AnimatedCount.tsx";
@@ -28,16 +39,63 @@ export type CacheRange = Pick<Preferences, "cacheField" | "cachePeriod">;
 interface CacheSettingsProps {
   data: SettingsData;
   saving: boolean;
+  onSave: (set: Partial<Preferences>) => Promise<void>;
   range: CacheRange | null;
   onRangeChange: (range: CacheRange | null) => void;
   onClear: () => Promise<void>;
 }
 
-export function CacheSettings({ data, saving, range, onRangeChange, onClear }: CacheSettingsProps) {
+export function CacheSettings({
+  data,
+  saving,
+  onSave,
+  range,
+  onRangeChange,
+  onClear,
+}: CacheSettingsProps) {
+  const { cacheAutoDelete, cacheRetentionDays } = data.values;
+
   return (
     <FieldSet disabled={saving}>
       <FieldLegend>번역 캐시</FieldLegend>
       <FieldGroup className="settings-group">
+        <Field orientation="horizontal" data-disabled={saving}>
+          <FieldContent>
+            <FieldLabel htmlFor="cacheAutoDelete">번역 캐시 자동 삭제</FieldLabel>
+            <FieldDescription id="cache-auto-delete-description">
+              저장된 번역을 선택한 기간 동안 보관한 뒤 삭제합니다.
+            </FieldDescription>
+          </FieldContent>
+          <div className="flex shrink-0 items-center gap-4">
+            <Select
+              value={cacheRetentionDays}
+              disabled={saving || !cacheAutoDelete}
+              onValueChange={(days) => {
+                if (days !== null) onSave({ cacheRetentionDays: days });
+              }}
+            >
+              <SelectTrigger aria-label="보관 기간" className="min-w-16">
+                <SelectValue>{cacheRetentionDays}일</SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  {CACHE_RETENTION_DAYS.map((days) => (
+                    <SelectItem key={days} value={days}>
+                      {days}일
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+            <Switch
+              id="cacheAutoDelete"
+              aria-describedby="cache-auto-delete-description"
+              checked={cacheAutoDelete}
+              disabled={saving}
+              onCheckedChange={(cacheAutoDelete) => onSave({ cacheAutoDelete })}
+            />
+          </div>
+        </Field>
         <Field orientation="responsive">
           <FieldContent>
             <FieldTitle>저장된 번역</FieldTitle>

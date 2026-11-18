@@ -49,6 +49,8 @@ export interface Preferences {
   realtime: boolean;
   cacheField: keyof typeof CACHE_FIELDS;
   cachePeriod: keyof typeof CACHE_PERIODS;
+  cacheAutoDelete: boolean;
+  cacheRetentionDays: number;
 }
 export interface CacheStats {
   count: number;
@@ -73,7 +75,7 @@ export interface Tools {
   hn_account: [undefined, Account];
   hn_preferences: [undefined, Preferences];
   hn_settings_read: [undefined, SettingsData];
-  hn_settings_update: [{ set: Partial<Preferences> }, { values: Preferences }];
+  hn_settings_update: [{ set: Partial<Preferences> }, { values: Preferences; cache: CacheStats }];
   hn_clear_cache: [
     Pick<Preferences, "cacheField" | "cachePeriod">,
     CacheStats & { removed: number },

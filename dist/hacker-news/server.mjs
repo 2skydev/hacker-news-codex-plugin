@@ -48,7 +48,7 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
 ));
 
 // shared/constants/settings.constants.ts
-var CACHE_FIELDS, CACHE_PERIODS, AUTO_MODEL;
+var CACHE_FIELDS, CACHE_PERIODS, CACHE_RETENTION_DAYS, AUTO_MODEL, DEFAULT_PREFERENCES;
 var init_settings_constants = __esm({
   "shared/constants/settings.constants.ts"() {
     "use strict";
@@ -62,7 +62,16 @@ var init_settings_constants = __esm({
       "7\uC77C\uBCF4\uB2E4 \uC624\uB798\uB428": -7,
       "30\uC77C\uBCF4\uB2E4 \uC624\uB798\uB428": -30
     };
+    CACHE_RETENTION_DAYS = [1, 2, 3, 5, 7, 30];
     AUTO_MODEL = "\uC790\uB3D9";
+    DEFAULT_PREFERENCES = {
+      model: AUTO_MODEL,
+      realtime: true,
+      cacheField: "\uBAA8\uB4E0 \uBC88\uC5ED",
+      cachePeriod: "\uC804\uCCB4 \uAE30\uAC04",
+      cacheAutoDelete: true,
+      cacheRetentionDays: 7
+    };
   }
 });
 
@@ -38370,10 +38379,13 @@ import { homedir as homedir2 } from "node:os";
 import { join as join3 } from "node:path";
 
 // server/news/cache.ts
+init_settings_constants();
 import { mkdirSync } from "node:fs";
 import { join as join2 } from "node:path";
 import { DatabaseSync } from "node:sqlite";
-function openCache(directory) {
+var DAY_MS = 864e5;
+var CACHE_CLEANUP_INTERVAL = DAY_MS / 24;
+function openCache(directory, now = Date.now) {
   mkdirSync(directory, { recursive: true, mode: 448 });
   const db = new DatabaseSync(join2(directory, "translations.sqlite"));
   db.exec(`
@@ -38404,20 +38416,61 @@ function openCache(directory) {
     db.exec("ALTER TABLE preferences ADD COLUMN cache_field TEXT NOT NULL DEFAULT '\uBAA8\uB4E0 \uBC88\uC5ED'");
   if (!columns.includes("cache_period"))
     db.exec("ALTER TABLE preferences ADD COLUMN cache_period TEXT NOT NULL DEFAULT '\uC804\uCCB4 \uAE30\uAC04'");
-  db.exec("COMMIT");
-  const current = db.prepare(
-    "SELECT model, realtime, epoch, cache_field AS cacheField, cache_period AS cachePeriod FROM preferences WHERE id = 1"
-  );
-  const update = db.prepare(`UPDATE preferences SET model = coalesce(?, model), realtime = coalesce(?, realtime),
-    cache_field = coalesce(?, cache_field), cache_period = coalesce(?, cache_period) WHERE id = 1`);
+  if (!columns.includes("cache_auto_delete"))
+    db.exec(`ALTER TABLE preferences ADD COLUMN cache_auto_delete INTEGER NOT NULL
+      DEFAULT ${Number(DEFAULT_PREFERENCES.cacheAutoDelete)} CHECK (cache_auto_delete IN (0, 1))`);
+  if (!columns.includes("cache_retention_days"))
+    db.exec(`ALTER TABLE preferences ADD COLUMN cache_retention_days INTEGER NOT NULL
+      DEFAULT ${DEFAULT_PREFERENCES.cacheRetentionDays} CHECK (cache_retention_days >= 1)`);
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS translations_saved_at ON translations (saved_at) WHERE saved_at > 0;
+    COMMIT;
+  `);
+  const current = db.prepare(`SELECT model, realtime, epoch, cache_field AS cacheField,
+    cache_period AS cachePeriod, cache_auto_delete AS cacheAutoDelete,
+    cache_retention_days AS cacheRetentionDays FROM preferences WHERE id = 1`);
+  const update = db.prepare(`UPDATE preferences SET model = coalesce(?, model),
+    realtime = coalesce(?, realtime), cache_field = coalesce(?, cache_field),
+    cache_period = coalesce(?, cache_period), cache_auto_delete = coalesce(?, cache_auto_delete),
+    cache_retention_days = coalesce(?, cache_retention_days) WHERE id = 1`);
   const stats = db.prepare(
     "SELECT count(*) AS count, coalesce(sum(length(CAST(ko AS BLOB))), 0) AS bytes FROM translations"
   );
   const remove = db.prepare(
     "DELETE FROM translations WHERE (? = 'all' OR field = ?) AND saved_at >= ? AND (? IS NULL OR saved_at < ?)"
   );
+  const retentionCutoff = `(SELECT ? - cache_retention_days * ${DAY_MS}
+    FROM preferences WHERE id = 1 AND cache_auto_delete = 1)`;
+  const read = db.prepare(`SELECT ko FROM translations WHERE id = ? AND field = ? AND fingerprint = ?
+    AND (saved_at = 0 OR saved_at >= coalesce(${retentionCutoff}, 0))`);
+  const removeExpired = db.prepare(
+    `DELETE FROM translations WHERE saved_at > 0 AND saved_at < ${retentionCutoff}`
+  );
   const readCurrent = () => current.get();
   const readStats = () => stats.get();
+  function readValues() {
+    const { epoch: _, realtime, cacheAutoDelete, ...values } = readCurrent();
+    return { ...values, realtime: Boolean(realtime), cacheAutoDelete: Boolean(cacheAutoDelete) };
+  }
+  function transaction(run) {
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      const result = run();
+      db.exec("COMMIT");
+      return result;
+    } catch (error62) {
+      db.exec("ROLLBACK");
+      throw error62;
+    }
+  }
+  removeExpired.run(now());
+  const cleanup = setInterval(() => {
+    try {
+      removeExpired.run(now());
+    } catch (error62) {
+      console.error("\uB9CC\uB8CC\uB41C \uBC88\uC5ED \uCE90\uC2DC\uB97C \uC0AD\uC81C\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.", error62);
+    }
+  }, CACHE_CLEANUP_INTERVAL).unref();
   return {
     readPreview: db.prepare(
       "SELECT payload, saved_at FROM page_previews WHERE key = ? AND saved_at >= ?"
@@ -38426,40 +38479,54 @@ function openCache(directory) {
       ON CONFLICT(key) DO UPDATE SET payload = excluded.payload, saved_at = excluded.saved_at
       WHERE page_previews.payload != excluded.payload OR page_previews.saved_at < excluded.saved_at - 60000`),
     forgetPreview: db.prepare("DELETE FROM page_previews WHERE key = ?"),
-    read: db.prepare("SELECT ko FROM translations WHERE id = ? AND field = ? AND fingerprint = ?"),
+    read(id2, field, fingerprint) {
+      return read.get(id2, field, fingerprint, now());
+    },
     write: db.prepare(`INSERT OR REPLACE INTO translations (id, field, fingerprint, ko, saved_at)
       SELECT ?, ?, ?, ?, ? FROM preferences WHERE id = 1 AND epoch = ?`),
     current: readCurrent,
-    values() {
-      const { model, realtime, cacheField, cachePeriod } = readCurrent();
-      return { model, realtime: Boolean(realtime), cacheField, cachePeriod };
+    values: readValues,
+    update({
+      model,
+      realtime,
+      cacheField,
+      cachePeriod,
+      cacheAutoDelete,
+      cacheRetentionDays
+    }) {
+      return transaction(() => {
+        update.run(
+          model ?? null,
+          realtime == null ? null : Number(realtime),
+          cacheField ?? null,
+          cachePeriod ?? null,
+          cacheAutoDelete == null ? null : Number(cacheAutoDelete),
+          cacheRetentionDays ?? null
+        );
+        removeExpired.run(now());
+        return { values: readValues(), cache: readStats() };
+      });
     },
-    update({ model, realtime, cacheField, cachePeriod }) {
-      update.run(
-        model ?? null,
-        realtime == null ? null : Number(realtime),
-        cacheField ?? null,
-        cachePeriod ?? null
-      );
+    stats() {
+      removeExpired.run(now());
+      return readStats();
     },
-    stats: readStats,
-    clear(field, days, now) {
+    clear(field, days, now2) {
       if (!["title", "text", "all"].includes(field) || ![0, 1, 7, 30].includes(Math.abs(days)))
         throw new Error("\uC0AD\uC81C \uBC94\uC704\uB97C \uD655\uC778\uD574 \uC8FC\uC138\uC694.");
-      db.exec("BEGIN IMMEDIATE");
-      try {
-        const cutoff = now - Math.abs(days) * 864e5;
+      return transaction(() => {
+        const cutoff = now2 - Math.abs(days) * DAY_MS;
         const oldest = days > 0 ? Math.max(1, cutoff) : days < 0 ? 1 : 0;
         const before = days < 0 ? cutoff : null;
         const { changes } = remove.run(field, field, oldest, before, before);
-        db.exec("UPDATE preferences SET epoch = epoch + 1; COMMIT");
+        db.exec("UPDATE preferences SET epoch = epoch + 1");
         return { removed: Number(changes), ...readStats() };
-      } catch (error62) {
-        db.exec("ROLLBACK");
-        throw error62;
-      }
+      });
     },
-    close: () => db.close()
+    close() {
+      clearInterval(cleanup);
+      db.close();
+    }
   };
 }
 
@@ -38671,7 +38738,7 @@ function createNewsService({
   directory = process.env.HN_DATA_DIR || join3(homedir2(), ".local", "share", "hacker-news"),
   now = Date.now
 } = {}) {
-  const db = openCache(directory);
+  const db = openCache(directory, now);
   const recent = /* @__PURE__ */ new Map();
   const loading = /* @__PURE__ */ new Map();
   const watching = /* @__PURE__ */ new Map();
@@ -38705,7 +38772,7 @@ function createNewsService({
     for (const field of ["title", "text"]) {
       const source = item[field];
       if (!source) continue;
-      const cached3 = db.read.get(item.id, field, signature(source));
+      const cached3 = db.read(item.id, field, signature(source));
       if (cached3) result[`${field}Ko`] = cached3.ko;
     }
     return result;
@@ -38840,7 +38907,7 @@ function createNewsService({
     const active2 = /* @__PURE__ */ new Map();
     const missing = [];
     for (const source of sources) {
-      const existing = db.read.get(source.id, field, source.fingerprint);
+      const existing = db.read(source.id, field, source.fingerprint);
       const pending = translating.get(source.key);
       if (existing) active2.set(source.key, { id: source.id, text: existing.ko });
       else if (pending) active2.set(source.key, pending);
@@ -38907,8 +38974,11 @@ var settingsValues = external_exports.object({
   model: external_exports.string().min(1),
   realtime: external_exports.boolean(),
   cacheField: external_exports.enum(cacheFields),
-  cachePeriod: external_exports.enum(cachePeriods)
+  cachePeriod: external_exports.enum(cachePeriods),
+  cacheAutoDelete: external_exports.boolean(),
+  cacheRetentionDays: external_exports.int().positive()
 });
+var cacheStats = external_exports.object({ count: external_exports.int().nonnegative(), bytes: external_exports.int().nonnegative() });
 var id = external_exports.int().positive();
 var page = {
   offset: external_exports.int().nonnegative().optional(),
@@ -39051,16 +39121,15 @@ serveStdio(() => {
     "hn_settings_update",
     "Hacker News \uC124\uC815 \uC800\uC7A5",
     {
-      set: settingsValues.partial().strict().refine((values) => Object.keys(values).length > 0)
+      set: settingsValues.extend({ cacheRetentionDays: external_exports.literal(CACHE_RETENTION_DAYS) }).partial().strict().refine((values) => Object.keys(values).length > 0)
     },
     false,
     async ({ set: set2 }) => {
       if (set2.model && set2.model !== AUTO_MODEL && !(await listModels()).includes(set2.model))
         throw new Error("\uC5F0\uACB0\uD55C \uACC4\uC815\uC5D0\uC11C \uC0AC\uC6A9\uD560 \uC218 \uC788\uB294 \uBAA8\uB378\uC744 \uC120\uD0DD\uD574 \uC8FC\uC138\uC694.");
-      preferences().update(set2);
-      return { values: preferences().values() };
+      return preferences().update(set2);
     },
-    external_exports.object({ values: settingsValues })
+    external_exports.object({ values: settingsValues, cache: cacheStats })
   );
   return server;
 });

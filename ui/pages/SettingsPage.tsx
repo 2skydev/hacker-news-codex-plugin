@@ -69,8 +69,8 @@ export function SettingsPage({
   async function save(set: Partial<Preferences>) {
     setSaving(true);
     try {
-      const { values } = await call("hn_settings_update", { set });
-      setData((old) => old && { ...old, values });
+      const { values, cache } = await call("hn_settings_update", { set });
+      setData((old) => old && { ...old, values, cache });
       onPreferences(values);
     } catch {
       notify("설정을 저장하지 못했습니다. 다시 시도해 주세요.");
@@ -155,6 +155,7 @@ export function SettingsPage({
             <CacheSettings
               data={data}
               saving={saving}
+              onSave={save}
               range={range}
               onRangeChange={setRange}
               onClear={clear}

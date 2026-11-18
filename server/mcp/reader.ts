@@ -7,6 +7,7 @@ import {
   AUTO_MODEL,
   CACHE_FIELDS,
   CACHE_PERIODS,
+  CACHE_RETENTION_DAYS,
 } from "../../shared/constants/settings.constants.ts";
 import { formatCacheBytes } from "../../shared/lib/format-cache-bytes.ts";
 import type { Preferences, SettingsData, Tools } from "../../shared/types/reader.types.ts";
@@ -39,7 +40,10 @@ const settingsValues = z.object({
   realtime: z.boolean(),
   cacheField: z.enum(cacheFields),
   cachePeriod: z.enum(cachePeriods),
+  cacheAutoDelete: z.boolean(),
+  cacheRetentionDays: z.int().positive(),
 });
+const cacheStats = z.object({ count: z.int().nonnegative(), bytes: z.int().nonnegative() });
 const id = z.int().positive();
 const page = {
   offset: z.int().nonnegative().optional(),
@@ -196,6 +200,7 @@ serveStdio(() => {
     "Hacker News 설정 저장",
     {
       set: settingsValues
+        .extend({ cacheRetentionDays: z.literal(CACHE_RETENTION_DAYS) })
         .partial()
         .strict()
         .refine((values) => Object.keys(values).length > 0),
@@ -204,10 +209,9 @@ serveStdio(() => {
     async ({ set }) => {
       if (set.model && set.model !== AUTO_MODEL && !(await listModels()).includes(set.model))
         throw new Error("연결한 계정에서 사용할 수 있는 모델을 선택해 주세요.");
-      preferences().update(set);
-      return { values: preferences().values() };
+      return preferences().update(set);
     },
-    z.object({ values: settingsValues }),
+    z.object({ values: settingsValues, cache: cacheStats }),
   );
   return server;
 });

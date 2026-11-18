@@ -50,6 +50,8 @@ test("설치 패키지가 사이드바 화면과 로컬 도구를 제공한다",
     realtime: true,
     cacheField: "모든 번역",
     cachePeriod: "전체 기간",
+    cacheAutoDelete: true,
+    cacheRetentionDays: 7,
   });
   const update = await callTool("hn_settings_update", { set: { realtime: false } });
   assert.equal(update.values.realtime, false);
@@ -74,6 +76,24 @@ test("설치 패키지가 사이드바 화면과 로컬 도구를 제공한다",
   await callTool("hn_settings_update", { set: { cacheField: "제목", cachePeriod: "최근 7일" } });
   assert.deepEqual(await clear(), { removed: 1, count: 0, bytes: 0 });
   assert.deepEqual((await readSettings()).cache, { count: 0, bytes: 0 });
+
+  await callTool("hn_settings_update", { set: { cacheAutoDelete: false, cacheRetentionDays: 3 } });
+  const oldCache = new DatabaseSync(join(dataDir, "translations.sqlite"));
+  oldCache
+    .prepare(
+      "INSERT INTO translations (id,field,fingerprint,ko,saved_at) VALUES (2,'text','b','댓글',?)",
+    )
+    .run(Date.now() - 4 * 86400000);
+  oldCache.close();
+  assert.deepEqual((await readSettings()).cache, { count: 1, bytes: 6 });
+  const enabled = await callTool("hn_settings_update", { set: { cacheAutoDelete: true } });
+  assert.equal(enabled.values.cacheRetentionDays, 3);
+  assert.deepEqual(enabled.cache, { count: 0, bytes: 0 });
+  const invalid = await client.callTool({
+    name: "hn_settings_update",
+    arguments: { set: { cacheRetentionDays: 4 } },
+  });
+  assert.equal(invalid.isError, true);
   const manifest = JSON.parse(await readFile(join(root, "plugin.json"), "utf8"));
   const setup = await readFile(
     join(root, manifest.extensions["com.openai"].onboardingSkill),
