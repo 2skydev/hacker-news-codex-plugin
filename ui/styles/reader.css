@@ -139,6 +139,9 @@ summary {
   padding: 0;
   list-style: none;
 }
+.bar + #stories:not(:empty) {
+  padding-block-start: var(--feed-content-gap);
+}
 #feed {
   --feed-content-gap: 12px;
   position: relative;
@@ -458,6 +461,92 @@ summary {
 }
 .replies .list-status {
   padding-inline-start: var(--comment-gutter);
+}
+[data-translation-view] {
+  --translation-duration: 240ms;
+  --translation-easing: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  view-transition-name: none;
+}
+[data-translation-part] {
+  view-transition-name: match-element;
+}
+[data-translation-part="text"] {
+  view-transition-class: translation-text;
+}
+[data-translation-part="layout"] {
+  view-transition-class: translation-layout;
+}
+[data-translation-view]::view-transition {
+  pointer-events: none;
+  animation: translation-scroll var(--translation-duration) var(--translation-easing) both;
+}
+@keyframes translation-scroll {
+  from {
+    transform: translateY(var(--translation-scroll-offset, 0px));
+  }
+}
+[data-translation-view]::view-transition-group(.translation-text),
+[data-translation-view]::view-transition-group(.translation-layout) {
+  animation-duration: var(--translation-duration);
+  animation-timing-function: var(--translation-easing);
+}
+[data-translation-view]::view-transition-image-pair(.translation-text) {
+  overflow: clip;
+}
+[data-translation-view]::view-transition-old(.translation-text),
+[data-translation-view]::view-transition-old(.translation-layout) {
+  display: none;
+}
+[data-translation-view]::view-transition-new(.translation-text),
+[data-translation-view]::view-transition-new(.translation-layout) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+:where(h2, .body-text):has(> .translation-outgoing) {
+  position: relative;
+}
+.translation-outgoing {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow-anchor: none;
+}
+.translation-outgoing .title-domain {
+  visibility: hidden;
+}
+[data-translation-incoming] {
+  opacity: 0;
+}
+[data-translation-playing] [data-translation-incoming] {
+  animation: translation-text-in var(--translation-duration) var(--translation-easing) both;
+}
+[data-translation-playing] .translation-outgoing {
+  animation: translation-text-out var(--translation-duration) var(--translation-easing) both;
+}
+@keyframes translation-text-in {
+  to {
+    opacity: 1;
+  }
+}
+@keyframes translation-text-out {
+  to {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-translation-view]::view-transition,
+  [data-translation-view]::view-transition-group(*),
+  [data-translation-view]::view-transition-old(*),
+  [data-translation-view]::view-transition-new(*) {
+    animation: none;
+  }
+  [data-translation-view] [data-translation-incoming] {
+    animation: none;
+    opacity: 1;
+  }
+  .translation-outgoing {
+    display: none;
+  }
 }
 .original {
   display: block;

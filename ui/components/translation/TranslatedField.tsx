@@ -27,7 +27,9 @@ export function TranslatedField({
     field === "text" ? <Body value={value} links={item.links} /> : value;
   return (
     <span lang={ko ? "ko" : "en"}>
-      {render(ko || en || "")}
+      <span data-pending-translation={en && !ko ? `${field}-${item.id}` : undefined}>
+        {render(ko || en || "")}
+      </span>
       {domain && (
         <>
           {" "}

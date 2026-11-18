@@ -22,7 +22,7 @@ function CommentList({ id, thread, more, toggle }: CommentListProps) {
       {comments.length > 0 && (
         // biome-ignore lint/a11y/noRedundantRoles: Safari drops list semantics when list markers are removed.
         <ul className={root ? "comment-list root-comments" : "comment-list"} role="list">
-          {comments.map((item, index) => {
+          {comments.map((item) => {
             const author = item.by || "익명";
             const age = since(item.time);
             const repliesOpen = Boolean(thread.lists[item.id]?.open);
@@ -56,7 +56,7 @@ function CommentList({ id, thread, more, toggle }: CommentListProps) {
                     <TranslatedField item={item} field="text" />
                   </p>
                 </div>
-                {index < list.comments.length && !!item.kids?.length && (
+                {!!item.kids?.length && (
                   <details
                     className="comment-disclosure"
                     open={repliesOpen}

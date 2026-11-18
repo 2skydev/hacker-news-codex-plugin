@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { Failure, Field, Item } from "../../shared/types/reader.types.ts";
 import { call } from "../lib/host.ts";
+import { revealTranslations } from "../lib/translation-motion.ts";
 import type { Job } from "../types/reader.types.ts";
 
 type Options = {
@@ -34,7 +35,11 @@ export function useTranslation(jobs: Job[], { enabled, session, model, view, onF
   const missing = jobs.filter(([item, field]) => item[field] && !translation(item, field));
   const field = missing[0]?.[1];
   const batch = missing.filter((job) => job[1] === field).slice(0, field === "title" ? 5 : 3);
-  const requests = batch.map(([item, field]) => ({ id: item.id, key: key(item, field) }));
+  const requests = batch.map(([item, field]) => ({
+    id: item.id,
+    key: key(item, field),
+    source: item[field],
+  }));
   const batchKey = JSON.stringify(requests.map((request) => request.key));
   // biome-ignore lint/correctness/useExhaustiveDependencies: The batch key tracks request content and account, model, and view changes cancel in-flight work.
   useEffect(() => {
@@ -56,14 +61,26 @@ export function useTranslation(jobs: Job[], { enabled, session, model, view, onF
         );
         if (controller.signal.aborted) return;
         const rows = new Map(result.items.map((row) => [row.id, row.text]));
-        setTexts((previous) => {
-          const next = new Map(previous);
-          for (const { id, key } of requests) {
-            const text = rows.get(id);
-            if (text) next.set(key, text);
-          }
-          return next;
-        });
+        const changed = new Set<string>();
+        for (const { id, source } of requests) {
+          const text = rows.get(id);
+          if (text && text !== source) changed.add(`${field}-${id}`);
+        }
+        const applied = await revealTranslations(
+          changed,
+          () => {
+            setTexts((previous) => {
+              const next = new Map(previous);
+              for (const { id, key } of requests) {
+                const text = rows.get(id);
+                if (text) next.set(key, text);
+              }
+              return next;
+            });
+          },
+          controller.signal,
+        );
+        if (!applied) return;
         const failure = result.status || (requests.some(({ id }) => !rows.has(id)) && "error");
         if (failure) {
           setBlocked(failure);
