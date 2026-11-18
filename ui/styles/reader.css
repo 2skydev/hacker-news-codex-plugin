@@ -126,6 +126,16 @@ summary {
   padding: 0;
   list-style: none;
 }
+#feed {
+  position: relative;
+}
+.feed-exits {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow-anchor: none;
+  pointer-events: none;
+}
 .row {
   display: grid;
   grid-template-columns: 24px minmax(0, 1fr);

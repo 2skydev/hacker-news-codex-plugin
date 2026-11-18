@@ -1,8 +1,22 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { FeedPage, Item, Sort } from "../../shared/types/reader.types.ts";
+import {
+  canAnimateFeed,
+  cancelFeedAnimations,
+  type FeedRowPosition,
+  playFeedAnimations,
+  REDUCED_MOTION,
+} from "../lib/feed-motion.ts";
 import { call, readWithPreview } from "../lib/host.ts";
 
 type Load = "first" | "more" | "poll";
+
+interface FeedLayout {
+  anchor?: [row: HTMLLIElement, top: number];
+  positions?: Map<HTMLLIElement, FeedRowPosition>;
+  focus?: HTMLElement;
+}
+
 interface FeedState {
   head: Item[];
   items: Item[];
@@ -69,7 +83,7 @@ function readPreview(sort: Sort): Omit<FeedPage, "revision"> | null {
 function distinct(items: Item[]) {
   return [...new Map(items.map((item) => [item.id, item])).values()];
 }
-function sameHead(a: Item[], b: Item[]) {
+function sameOrder(a: Item[], b: Item[]) {
   return a.length === b.length && a.every((item, index) => item.id === b[index].id);
 }
 
@@ -92,26 +106,59 @@ export function useFeed(sort: Sort, active: boolean, realtime: boolean, ready: b
   const current = useRef(feed);
   const busy = useRef(false);
   const life = useRef<AbortController | null>(null);
-  const anchor = useRef<[string, number] | null>(null);
+  const layout = useRef<FeedLayout | null>(null);
   const mode = useRef({ active, realtime });
   useLayoutEffect(() => {
     mode.current = { active, realtime };
+    if (!active) cancelFeedAnimations();
   }, [active, realtime]);
+  useEffect(() => {
+    const preference = window.matchMedia(REDUCED_MOTION);
+    function stop(event: MediaQueryListEvent) {
+      if (event.matches) cancelFeedAnimations();
+    }
+
+    preference.addEventListener("change", stop);
+    return () => preference.removeEventListener("change", stop);
+  }, []);
   function update(patch: Partial<FeedState>) {
     current.current = { ...current.current, ...patch };
     set(current.current);
   }
   function apply(page: FeedPage, items = page.items, cursor = page) {
-    const first =
-      window.scrollY &&
-      document.querySelector("#stories") &&
-      [...document.querySelectorAll("#stories .row")].find(
-        (row) => row.getBoundingClientRect().top >= 0,
-      );
-    if (active && first) anchor.current = [first.id, first.getBoundingClientRect().top];
+    const nextItems = distinct(items);
+    const state = current.current;
+    const changed = !!state.revision && !sameOrder(state.items, nextItems);
+    const before: FeedLayout = {};
+    if (mode.current.active && (window.scrollY || changed)) {
+      const rows = [...document.querySelectorAll<HTMLLIElement>("#stories > .row")];
+      if (changed && canAnimateFeed()) {
+        before.positions = new Map(
+          rows.map((row) => [
+            row,
+            { rect: row.getBoundingClientRect(), opacity: Number(getComputedStyle(row).opacity) },
+          ]),
+        );
+      }
+      const focused = document.activeElement;
+      if (changed && focused instanceof HTMLElement && focused.closest("#stories > .row")) {
+        before.focus = focused;
+      }
+      if (window.scrollY) {
+        const nextIds = new Set(nextItems.map(({ id }) => `row-${id}`));
+        for (const row of rows) {
+          if (!nextIds.has(row.id)) continue;
+          const top = (before.positions?.get(row)?.rect ?? row.getBoundingClientRect()).top;
+          if (top < 0) continue;
+          before.anchor = [row, top];
+          break;
+        }
+      }
+    }
+    layout.current = before;
     update({
       head: page.items,
-      items: distinct(items),
+      items: nextItems,
       next: cursor.nextOffset,
       more: cursor.hasMore,
       pending: null,
@@ -121,13 +168,21 @@ export function useFeed(sort: Sort, active: boolean, realtime: boolean, ready: b
     });
     storePreview(sort, page);
   }
-  // biome-ignore lint/correctness/useExhaustiveDependencies: Restore the saved scroll position after the list commits.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Apply the saved layout after the list commits.
   useLayoutEffect(() => {
-    if (!anchor.current) return;
-    const [id, top] = anchor.current;
-    anchor.current = null;
-    const node = document.getElementById(id);
-    if (node) window.scrollBy(0, node.getBoundingClientRect().top - top);
+    const before = layout.current;
+    layout.current = null;
+    if (!before || !mode.current.active) return;
+
+    if (before.positions) cancelFeedAnimations();
+    if (before.anchor) {
+      const [row, top] = before.anchor;
+      if (row.isConnected) window.scrollBy(0, row.getBoundingClientRect().top - top);
+    }
+    if (before.focus?.isConnected && document.activeElement === document.body) {
+      before.focus.focus({ preventScroll: true });
+    }
+    if (before.positions && canAnimateFeed()) playFeedAnimations(before.positions);
   }, [feed.items]);
 
   async function load(type: Load = "first", signal = life.current?.signal) {
@@ -183,7 +238,7 @@ export function useFeed(sort: Sort, active: boolean, realtime: boolean, ready: b
         return;
       }
       const state = current.current;
-      const same = sameHead(state.head, page.items);
+      const same = sameOrder(state.head, page.items);
       const unchanged =
         same &&
         page.items.every((row, i) =>

@@ -107,6 +107,7 @@ export function Feed({
           <Row key={item.id} item={item} index={i} open={open} />
         ))}
       </ol>
+      <ol id="feed-exits" className="feed-exits stories" aria-hidden="true" inert />
       {hostError || feed.error ? (
         <p className="empty" role="status">
           {hostError || feed.error}
