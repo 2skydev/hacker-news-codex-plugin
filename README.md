@@ -1,10 +1,34 @@
-# Hacker News
+# Hacker News Korean - Codex Plugin
 
-Hacker News 인기 글과 최신 글을 읽는 개인용 로컬 리더입니다. 브라우저에서 독립 실행하거나 Codex 데스크톱 사이드바에 플러그인으로 설치할 수 있습니다. 사용자에게 권한을 받은 로컬 프로세스가 ChatGPT 구독으로 한국어 번역을 요청합니다.
+Codex 사이드바나 브라우저에서 Hacker News의 인기 글과 최신 글을 읽는 로컬 리더입니다. ChatGPT 계정을 연결하면 글 제목과 댓글을 한국어로 번역할 수 있습니다.
 
-## 브라우저에서 독립 실행
+![한국어로 번역된 Hacker News 인기 글 목록](docs/screenshots/top-stories.png)
 
-Mac에서 Node.js 24 이상으로 아래 명령을 실행합니다. 터미널에 표시되는 `http://127.0.0.1:포트` 주소를 브라우저에서 여세요.
+<details>
+<summary>최신 글, 댓글, 설정 화면 더 보기</summary>
+
+![최신 글 목록과 번역 진행 상태](docs/screenshots/latest-stories.png)
+
+![한국어로 번역된 댓글과 접힌 답글](docs/screenshots/discussion.png)
+
+![ChatGPT 계정 연결, 번역 모델, 캐시 설정](docs/screenshots/settings.png)
+
+</details>
+
+## Codex에 설치
+
+설치할 Mac에서 비공개 저장소를 읽을 수 있도록 GitHub 인증이 되어 있어야 합니다.
+
+1. Codex의 **플러그인 → 추가 → 마켓플레이스 추가**를 엽니다.
+2. **출처**에 `https://github.com/2skydev/hacker-news-codex-plugin.git`을 입력합니다. **Git ref**는 `main`으로 지정하고 **Sparse 경로**는 비워 둡니다.
+3. 마켓플레이스를 추가한 뒤 **Hacker News**를 설치합니다.
+4. 사이드바의 **… → Hacker News**에서 리더를 엽니다. [피드 직접 열기](codex://plugins/hacker-news@hacker-news-codex-plugin/app/open_reader)
+
+업데이트하려면 **플러그인 → 관리 → 마켓플레이스**에서 **Hacker News**의 **업그레이드**를 누른 뒤 리더를 다시 엽니다.
+
+## 브라우저에서 실행
+
+Mac에서 Node.js 24 이상으로 아래 명령을 실행하고, 터미널에 표시되는 로컬 주소를 브라우저에서 엽니다.
 
 ```sh
 npm ci
@@ -12,54 +36,20 @@ npm run build:standalone
 npm start
 ```
 
-피드와 댓글은 바로 읽을 수 있습니다. 한국어 번역을 사용하려면 오른쪽 위 **설정**에서 ChatGPT 계정을 연결하세요. 기본으로 Codex 플러그인과 같은 로컬 저장 경로를 사용하므로 같은 Mac의 기존 연결과 번역 캐시, 설정을 이어 쓸 수 있습니다. 데이터 경로는 `HN_DATA_DIR`로 지정할 수 있습니다.
+## 한국어 번역
 
-빌드 결과인 `dist/standalone/`은 Node.js 24 이상이 있는 Mac에서 폴더 안의 `server.mjs`를 직접 실행할 수도 있습니다.
+- **설정 → ChatGPT로 로그인**에서 계정을 연결하고 플랜 사용을 허용합니다.
+- **댓글**을 눌러 토론을 열고, 답글을 펼쳐 번역합니다. **영문 함께 보기**로 원문을 확인할 수 있습니다.
+- **설정**에서 번역 모델과 피드 자동 갱신을 바꾸거나 번역 캐시를 비울 수 있습니다. 번역 캐시는 기본 7일간 보관합니다.
 
-## 설치
+## 로컬 데이터
 
-이 저장소는 비공개입니다. 설치할 Mac의 Git에 저장소 읽기 권한이 있는 GitHub 계정이 연결되어 있어야 합니다.
+리더는 Hacker News 공식 API에서 글과 댓글을 가져오고, 번역할 텍스트를 OpenAI에 보냅니다. 설정과 번역 캐시는 기본적으로 `~/.local/share/hacker-news/`에 저장합니다. `HN_DATA_DIR`로 저장 경로를 바꿀 수 있습니다.
 
-1. Codex 앱의 **플러그인** 화면에서 **추가 → 마켓플레이스 추가**를 선택합니다.
-2. **출처**에 `https://github.com/2skydev/hacker-news-codex-plugin.git`을 붙여넣고 **Git ref**에 `main`을 입력합니다. **Sparse 경로**는 비워 둡니다.
-3. **마켓플레이스 추가**를 누른 뒤 플러그인 목록에서 **Hacker News**를 열고 **설치**를 누릅니다.
-4. 왼쪽 **…** 메뉴에서 **Hacker News**를 엽니다. 자주 사용한다면 사이드바에 고정할 수 있습니다. [피드 직접 열기](codex://plugins/hacker-news@hacker-news-codex-plugin/app/open_reader)
+ChatGPT 계정 연결 정보는 macOS 키체인에 저장합니다. 같은 데이터 경로를 사용하는 Codex와 브라우저가 연결을 공유합니다. 이전 버전에서 연결한 계정은 업데이트 후 다시 로그인해야 합니다.
 
-## 업데이트
+## 개발
 
-Codex 앱의 **플러그인 → 관리 → 마켓플레이스**에서 **Hacker News** 행의 **업그레이드**를 누릅니다. Codex가 GitHub의 `main`을 가져와 설치된 플러그인에 새 버전을 적용합니다. 리더가 열려 있었다면 닫았다가 다시 엽니다.
+`npm ci`로 의존성을 설치한 뒤 `npm run dev`로 개발 서버를 실행합니다. 정적 검사와 테스트는 각각 `npm run check`와 `npm test`로 실행합니다.
 
-## 사용
-
-1. 리더 오른쪽 위 **설정 → ChatGPT로 로그인**를 눌러 브라우저에서 사용할 계정을 선택하고 플랜 사용을 허용합니다. 연결 후 리더로 돌아오면 새 제목을 한국어로 번역합니다. 자동 모드는 계정이 제공하면 GPT-6 Luna를 우선 선택합니다. 리더 설정에서 다른 모델을 선택하면 새 번역부터 적용됩니다. 설치 후 플러그인의 설정 시작 안내에서도 연결 방법을 볼 수 있습니다.
-2. **인기 글**은 Hacker News 순위, **최신 글**은 게시 순서로 읽습니다. 기본으로 새 글과 순위 변경을 자동 반영합니다. 설정에서 실시간 갱신을 끄면 변경 안내를 눌러 반영합니다. 외부 기사 제목은 해당 기사로 이동합니다.
-3. **댓글**을 눌러 토론을 읽고 답글을 펼쳐 번역합니다. **영문 함께 보기**로 번역과 영문을 대조할 수 있습니다.
-4. 플랜 한도에 도달하면 저장된 번역과 영문으로 계속 읽을 수 있습니다. **리더 설정**에서 연결을 해제할 수 있습니다. **번역 캐시**에서 저장된 번역문 크기를 확인하거나 종류와 저장 기간별로 캐시를 비울 수 있습니다. 번역은 기본으로 저장 후 7일이 지나면 자동 삭제됩니다. 보관 기간은 1일, 2일, 3일, 5일, 7일, 30일 중 선택할 수 있으며 자동 삭제를 끌 수 있습니다. 저장 시각이 없는 이전 버전의 번역은 수동 삭제 시 전체 기간에 포함됩니다.
-
-개인 Mac에서 실행하는 이 플러그인은 첫 로그인 때 OpenAI가 Client ID를 발급하므로 별도 신청이나 API 키 입력이 필요하지 않습니다. 번역을 사용하려면 해당 앱의 플랜 사용을 승인해야 합니다. [로컬 앱 등록 절차](https://developers.openai.com/siwc/token-sharing-open-source/sign-in) 플랜 제공량과 허용한 크레딧은 [ChatGPT 사용량 관리](https://help.openai.com/en/articles/20001542-using-your-chatgpt-plan-in-other-apps-and-sites)를 따릅니다. 이 프로젝트의 배포 형태는 개인 Mac에서 실행하는 로컬 플러그인입니다. [OpenAI 로컬 앱 가이드](https://developers.openai.com/cookbook/articles/sign-in-with-chatgpt)
-
-## 로컬 데이터와 개발
-
-HN 공개 데이터는 공식 Firebase API에서 읽습니다. 현재 목록에 불러온 글의 미번역 제목과 펼쳐서 불러온 본문 또는 댓글을 OpenAI로 보냅니다. 최근에 본 목록과 댓글의 공개 원문을 최대 64페이지까지 로컬에 보관합니다. 24시간 이내의 페이지는 저장된 번역을 먼저 표시하고 HN에서 최신 내용을 확인합니다. 번역 캐시와 플러그인 전용 계정 자격 증명은 기본적으로 `~/.local/share/hacker-news/`에 저장합니다. 리더가 계정 자격 증명을 암호화하며 암호화 키는 macOS 키체인에 저장합니다. 이전 버전의 연결은 첫 사용 시 이 형식으로 옮깁니다. `HN_DATA_DIR`로 저장 위치를 바꿀 수 있습니다.
-
-```sh
-npm ci
-npm run check
-npm test
-```
-
-설치본의 데스크톱 등록 상태는 실제 앱에 포함된 실행 파일로 확인합니다.
-
-```sh
-node scripts/check-desktop.ts "/Applications/ChatGPT.app/Contents/Resources/codex-cli/bin/codex"
-```
-
-Node.js 24 이상에서 `npm run dev`를 실행하고 터미널의 로컬 주소를 브라우저에서 열면 실제 피드, 댓글, 설정과 ChatGPT 연결을 사용할 수 있습니다. 개발 서버는 독립 실행 버전과 같은 로컬 HTTP API를 사용합니다.
-
-UI 페이지는 `ui/pages/`에, 피드와 토론, 설정의 구성 요소는 `ui/components/`에 있습니다. 화면 상태와 데이터 요청은 `ui/hooks/`에서 관리합니다. `server/mcp/`와 `server/http/`는 `server/reader-tools.ts`에 정의한 도구를 각 실행 환경에 연결합니다. UI와 서버가 함께 쓰는 타입과 상수는 `shared/`에 있습니다.
-
-`npm run format`으로 Biome 포맷을 적용하고 `npm run lint`로 린트를 실행합니다. `npm run check`는 Biome 검사와 UI, 서버, 스크립트, 테스트의 TypeScript 타입 검사를 실행합니다.
-
-React와 TypeScript로 작성한 UI는 Vite가 변경 즉시 반영합니다. 서버 소스를 수정했다면 개발 서버를 다시 시작하세요. `npm test`는 플러그인 패키지와 독립 실행 버전을 빌드한 뒤 테스트합니다.
-
-OAuth 로그인, 토큰 갱신, 모델 조회와 Responses API 호출은 로컬 서버에서 처리합니다. React 리더에는 Codex UI Kit의 테마와 컴포넌트를 포함합니다. 새 플러그인 버전을 배포할 때는 소스와 `npm run build`의 결과인 `dist/hacker-news/`를 함께 커밋하고 `main`에 푸시하세요. 설치하는 Mac은 이 패키지를 그대로 사용합니다.
+플러그인을 배포할 때는 `npm run build`로 생성한 `dist/hacker-news/`를 소스와 함께 커밋해 `main`에 푸시합니다.

@@ -1,14 +1,14 @@
 import assert from "node:assert/strict";
-import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
+import { createHash } from "node:crypto";
 import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test, { type TestContext } from "node:test";
 import { generateKeyPair, SignJWT } from "jose";
 import { readTranslationStream } from "../server/account/account-inference.ts";
+import type { AccountKeychain } from "../server/account/account-keychain.ts";
 import { createAccountService, verifyIdentity } from "../server/account/account-service.ts";
 import { accountStore } from "../server/account/account-store.ts";
-import type { CredentialEncryption } from "../server/account/credential-encryption.ts";
 
 const scope = "openid email offline_access resource.invoke chatgpt.tokens.use.direct";
 const rows = [{ id: "1", text: "news" }];
@@ -22,20 +22,14 @@ const success = () =>
   ]);
 const json = (data: unknown, status = 200) => Response.json(data, { status });
 
-function testEncryption(): CredentialEncryption {
-  const key = randomBytes(32);
+function testKeychain(): AccountKeychain {
+  const items = new Map<string, string>();
   return {
-    id: "test",
-    async encrypt(text) {
-      const iv = randomBytes(12),
-        cipher = createCipheriv("aes-256-gcm", key, iv);
-      const encrypted = Buffer.concat([cipher.update(text), cipher.final()]);
-      return Buffer.concat([iv, cipher.getAuthTag(), encrypted]);
+    async read(account) {
+      return items.get(account);
     },
-    async decrypt(bytes) {
-      const cipher = createDecipheriv("aes-256-gcm", key, bytes.subarray(0, 12));
-      cipher.setAuthTag(bytes.subarray(12, 28));
-      return Buffer.concat([cipher.update(bytes.subarray(28)), cipher.final()]).toString();
+    async write(account, state) {
+      items.set(account, state);
     },
   };
 }
@@ -43,7 +37,7 @@ function testEncryption(): CredentialEncryption {
 async function fixture(t: TestContext) {
   const folder = await mkdtemp(join(tmpdir(), "hacker-news-account-"));
   t.after(() => rm(folder, { recursive: true, force: true }));
-  const store = accountStore(folder, testEncryption());
+  const store = accountStore(folder, testKeychain());
   const grant = {
     access_token: "test-access",
     refresh_token: "test-refresh",
@@ -147,12 +141,9 @@ test("OAuth login, plan-approved model choice, stream and disconnect", async (t)
   assert.equal((await f.login()).status, 200);
   const safe = await f.service.accountStatus();
   assert.equal(safe.connected, true);
-  assert.doesNotMatch(
-    await readFile(join(f.folder, "account/accounts.json"), "utf8"),
-    /test-access|test-refresh/,
-  );
+  assert.equal((await f.store.read()).profiles[0].tokens?.refresh, "test-refresh");
   assert.ok(!JSON.stringify(safe).includes("test-access"));
-  assert.equal((await stat(join(f.folder, "account/accounts.json"))).mode & 0o777, 0o600);
+  await assert.rejects(stat(join(f.folder, "account/accounts.json")), { code: "ENOENT" });
   assert.deepEqual(await f.service.translateBatch(rows), translations);
   const body = JSON.parse(String(f.api[1].options.body));
   assert.equal(body.model, "gpt-6-luna");
@@ -165,62 +156,22 @@ test("OAuth login, plan-approved model choice, stream and disconnect", async (t)
   assert.equal(new Headers(f.api[1].options.headers).get("Authorization"), "Bearer test-access");
   assert.equal((await f.service.signOut()).connected, false);
   assert.equal(f.revoked, "test-refresh");
-  assert.ok(
-    !(await readFile(join(f.folder, "account/accounts.json"), "utf8")).includes("test-access"),
-  );
+  assert.equal((await f.store.read()).profiles[0].tokens, undefined);
   await assert.rejects(f.service.translateBatch(rows), { code: "disconnected" });
 });
 
-test("SDK에서 연결한 계정과 설치 ID를 암호화된 직접 API 저장소로 이전한다", async (t) => {
-  const dir = await mkdtemp(join(tmpdir(), "hn-migration-"));
-  t.after(() => rm(dir, { recursive: true, force: true }));
-  const folder = join(dir, "account"),
-    encryption = testEncryption();
+test("이전 계정 파일이 있어도 키체인의 연결 정보만 사용한다", async (t) => {
+  const f = await fixture(t);
+  const folder = join(f.folder, "account");
   await mkdir(folder);
-  const previous = {
-    version: 2,
-    activeProfileId: "one",
-    pendingRegistrations: [],
-    profiles: [
-      {
-        id: "one",
-        clientId: "registered",
-        subject: "person",
-        identity: { email: "reader@example.org" },
-        scopes: scope.split(" "),
-        credentials: {
-          accessToken: "test-access",
-          refreshToken: "test-refresh",
-          expiresAt: Date.now() + 100000,
-        },
-      },
-    ],
-  };
-  const file = join(folder, "chatgpt-auth.json");
-  await writeFile(
-    file,
-    JSON.stringify({
-      version: 3,
-      provider: encryption.id,
-      ciphertext: Buffer.from(await encryption.encrypt(JSON.stringify(previous))).toString(
-        "base64",
-      ),
-    }),
-  );
-  await writeFile(join(folder, "chatgpt-host.json"), JSON.stringify({ version: 1, id: "host" }));
-  await assert.rejects(accountStore(dir, testEncryption()).read());
-  const store = accountStore(dir, encryption);
-  const [first, second] = await Promise.all([store.read(), store.read()]);
-  assert.deepEqual(first, second);
-  assert.equal(first.host, "host");
-  assert.equal(first.active, "registered");
-  assert.equal(first.profiles[0].tokens?.refresh, "test-refresh");
-  assert.equal((await createAccountService({ store }).accountStatus()).connected, true);
-  await assert.rejects(stat(file), { code: "ENOENT" });
-  assert.doesNotMatch(
-    await readFile(join(folder, "accounts.json"), "utf8"),
-    /test-refresh|test-access|reader@example/,
-  );
+  const previous = join(folder, "accounts.json");
+  const contents = "legacy data";
+  await writeFile(previous, contents);
+
+  assert.equal((await f.service.accountStatus()).connected, false);
+  assert.equal((await f.login()).status, 200);
+  assert.equal((await f.service.accountStatus()).connected, true);
+  assert.equal(await readFile(previous, "utf8"), contents);
 });
 
 test("프로필 사진이 있는 계정도 리더에 계정 이름만 표시용으로 전달한다", async (t) => {

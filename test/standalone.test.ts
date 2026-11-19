@@ -1,19 +1,26 @@
 import assert from "node:assert/strict";
-import { spawn } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import { once } from "node:events";
-import { cp, mkdtemp, rm } from "node:fs/promises";
+import { cp, mkdtemp, realpath, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createInterface } from "node:readline";
 import { test } from "node:test";
+import {
+  accountKeychain,
+  keychainAccount,
+  keychainService,
+} from "../server/account/account-keychain.ts";
 import { READER_API_PATH } from "../shared/constants/reader.constants.ts";
 
 test("독립 실행 빌드가 로컬 브라우저에 화면과 리더 API를 제공한다", async (t) => {
   const directory = await mkdtemp(join(tmpdir(), "hn-standalone-test-"));
   const app = join(directory, "app");
+  const dataDir = join(await realpath(directory), "data");
+  const keychainId = keychainAccount(join(dataDir, "account"));
   await cp(new URL("../dist/standalone/", import.meta.url), app, { recursive: true });
   const child = spawn(process.execPath, [join(app, "server.mjs")], {
-    env: { HN_DATA_DIR: join(directory, "data") },
+    env: { HN_DATA_DIR: dataDir },
     stdio: ["ignore", "pipe", "inherit"],
   });
   const exit = once(child, "close");
@@ -21,6 +28,12 @@ test("독립 실행 빌드가 로컬 브라우저에 화면과 리더 API를 제
     child.kill();
     await exit;
     await rm(directory, { recursive: true, force: true });
+    if (await accountKeychain.read(keychainId))
+      execFileSync(
+        "/usr/bin/security",
+        ["delete-generic-password", "-s", keychainService, "-a", keychainId],
+        { stdio: "ignore" },
+      );
   });
 
   const output = createInterface({ input: child.stdout });

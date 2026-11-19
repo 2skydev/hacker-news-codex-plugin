@@ -32,9 +32,9 @@ var __export = (target, all) => {
 };
 var __copyProps = (to, from, except, desc) => {
   if (from && typeof from === "object" || typeof from === "function") {
-    for (let key2 of __getOwnPropNames(from))
-      if (!__hasOwnProp.call(to, key2) && key2 !== except)
-        __defProp(to, key2, { get: () => from[key2], enumerable: !(desc = __getOwnPropDesc(from, key2)) || desc.enumerable });
+    for (let key of __getOwnPropNames(from))
+      if (!__hasOwnProp.call(to, key) && key !== except)
+        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
   }
   return to;
 };
@@ -311,35 +311,35 @@ var init_validate = __esm({
 });
 
 // node_modules/jose/dist/webapi/lib/key.js
-async function prepareKey(entry, key2, usage) {
+async function prepareKey(entry, key, usage) {
   const { alg, secret: secret2 } = entry, requiresPrivateKey = usage === "decrypt" || usage === "sign";
-  if (secret2 && key2 instanceof Uint8Array)
-    return key2;
+  if (secret2 && key instanceof Uint8Array)
+    return key;
   let normalized, keyObject;
-  if (isObject2(key2)) {
-    if (normalized = normalizeJwk(key2), typeof normalized.kty != "string")
-      throw invalidKeyType(alg, key2, secret2);
+  if (isObject2(key)) {
+    if (normalized = normalizeJwk(key), typeof normalized.kty != "string")
+      throw invalidKeyType(alg, key, secret2);
     if (!(secret2 ? normalized.kty === "oct" && typeof normalized.k == "string" : normalized.kty !== "oct" && (requiresPrivateKey ? normalized.kty === "AKP" && typeof normalized.priv == "string" || typeof normalized.d == "string" : normalized.d === void 0 && normalized.priv === void 0)))
       throw new TypeError(secret2 ? 'JSON Web Key for symmetric algorithms must have JWK "kty" (Key Type) equal to "oct" and the JWK "k" (Key Value) present' : `JSON Web Key for this operation must be a ${requiresPrivateKey ? "private" : "public"} JWK`);
     if (jwkMatchesOp(entry, normalized, usage), normalized.kty === "oct")
       return decode3(normalized.k);
-    if (!Object.isFrozen(key2)) {
-      const { key_ops } = key2;
-      Array.isArray(key_ops) && Object.freeze(key_ops), Object.freeze(key2);
+    if (!Object.isFrozen(key)) {
+      const { key_ops } = key;
+      Array.isArray(key_ops) && Object.freeze(key_ops), Object.freeze(key);
     }
   } else {
-    if (!isKeyLike(key2))
-      throw invalidKeyType(alg, key2, secret2);
+    if (!isKeyLike(key))
+      throw invalidKeyType(alg, key, secret2);
     const expectedType = secret2 ? "secret" : requiresPrivateKey ? "private" : "public";
-    if (key2.type !== expectedType && (secret2 || ["secret", "public", "private"].includes(key2.type)))
-      throw new TypeError(`${tag(key2)} instances must be of type "${expectedType}" for the ${alg} algorithm`);
-    if (isCryptoKey(key2))
-      return key2;
-    if (keyObject = key2, keyObject.type === "secret")
+    if (key.type !== expectedType && (secret2 || ["secret", "public", "private"].includes(key.type)))
+      throw new TypeError(`${tag(key)} instances must be of type "${expectedType}" for the ${alg} algorithm`);
+    if (isCryptoKey(key))
+      return key;
+    if (keyObject = key, keyObject.type === "secret")
       return keyObject.export();
   }
   cache ||= /* @__PURE__ */ new WeakMap();
-  const cacheKey = key2;
+  const cacheKey = key;
   let cached2 = cache.get(cacheKey);
   if (cached2?.[alg])
     return cached2[alg];
@@ -360,17 +360,17 @@ function invalidKeyType(alg, actual, secret2) {
   const types = ["CryptoKey", "KeyObject", "JSON Web Key"];
   return secret2 && types.push("Uint8Array"), new TypeError(message(`Key for the ${alg} algorithm must be `, actual, ...types));
 }
-function checkUsage(key2, usage) {
-  if (usage && !key2.usages.includes(usage))
+function checkUsage(key, usage) {
+  if (usage && !key.usages.includes(usage))
     throw new TypeError(`CryptoKey does not support this operation, its usages must include ${usage}.`);
 }
-function checkModulusLength(alg, key2) {
-  const { modulusLength } = key2.algorithm;
+function checkModulusLength(alg, key) {
+  const { modulusLength } = key.algorithm;
   if (typeof modulusLength != "number" || modulusLength < 2048)
     throw new TypeError(`${alg} requires key modulusLength to be 2048 bits or larger`);
 }
-function checkCryptoKey(key2, expected, usage) {
-  const algorithm = key2.algorithm;
+function checkCryptoKey(key, expected, usage) {
+  const algorithm = key.algorithm;
   if (algorithm.name !== expected.name)
     throw unusable(expected.name);
   if (expected.hash && algorithm.hash?.name !== expected.hash)
@@ -379,7 +379,7 @@ function checkCryptoKey(key2, expected, usage) {
     throw unusable(expected.namedCurve, "algorithm.namedCurve");
   if (expected.length !== void 0 && algorithm.length !== expected.length)
     throw unusable(expected.length, "algorithm.length");
-  checkUsage(key2, usage);
+  checkUsage(key, usage);
 }
 function snapshotJwk(jwk) {
   return { __proto__: null, ...jwk };
@@ -402,8 +402,8 @@ async function jwkToKey(entry, jwk, extractable) {
   const algorithm = entry.resolve?.({ kty: jwk.kty, crv: jwk.crv }) ?? entry.subtle, isPrivate = !!(jwk.d || jwk.priv), keyData = { ...jwk, ext: extractable ?? jwk.ext };
   return keyData.kty !== "AKP" && delete keyData.alg, delete keyData.use, crypto.subtle.importKey("jwk", keyData, algorithm, keyData.ext ?? !isPrivate, jwk.key_ops ?? entry.usages[isPrivate ? 1 : 0]);
 }
-async function rawKey(key2, expected, usage, extractable = false) {
-  return key2 instanceof Uint8Array && (key2 = await crypto.subtle.importKey("raw", key2, expected, extractable, [usage])), checkCryptoKey(key2, expected, usage), key2;
+async function rawKey(key, expected, usage, extractable = false) {
+  return key instanceof Uint8Array && (key = await crypto.subtle.importKey("raw", key, expected, extractable, [usage])), checkCryptoKey(key, expected, usage), key;
 }
 var tag, jwkMatchesOp, cache, nist, isCryptoKey, isKeyObject, isKeyLike, unusable;
 var init_key = __esm({
@@ -411,19 +411,19 @@ var init_key = __esm({
     init_validate();
     init_base64url();
     init_errors();
-    tag = (key2) => key2[Symbol.toStringTag];
-    jwkMatchesOp = (entry, key2, usage) => {
+    tag = (key) => key[Symbol.toStringTag];
+    jwkMatchesOp = (entry, key, usage) => {
       const { alg } = entry;
-      if (key2.use !== void 0) {
+      if (key.use !== void 0) {
         const expected = usage === "sign" || usage === "verify" ? "sig" : "enc";
-        if (key2.use !== expected)
+        if (key.use !== expected)
           throw new TypeError(`Invalid key for this operation, its "use" must be "${expected}" when present`);
       }
-      if (key2.alg !== void 0 && key2.alg !== alg)
+      if (key.alg !== void 0 && key.alg !== alg)
         throw new TypeError(`Invalid key for this operation, its "alg" must be "${alg}" when present`);
-      if (Array.isArray(key2.key_ops)) {
+      if (Array.isArray(key.key_ops)) {
         const expectedKeyOp = usage === "encrypt" || usage === "decrypt" ? entry.ops?.[usage === "encrypt" ? 0 : 1] : usage;
-        if (expectedKeyOp && !key2.key_ops.includes(expectedKeyOp))
+        if (expectedKeyOp && !key.key_ops.includes(expectedKeyOp))
           throw new TypeError(`Invalid key for this operation, its "key_ops" must include "${expectedKeyOp}" when present`);
       }
     };
@@ -433,17 +433,17 @@ var init_key = __esm({
       secp384r1: "P-384",
       secp521r1: "P-521"
     };
-    isCryptoKey = (key2) => {
-      if (key2?.[Symbol.toStringTag] === "CryptoKey")
+    isCryptoKey = (key) => {
+      if (key?.[Symbol.toStringTag] === "CryptoKey")
         return true;
       try {
-        return key2 instanceof CryptoKey;
+        return key instanceof CryptoKey;
       } catch {
         return false;
       }
     };
-    isKeyObject = (key2) => key2?.[Symbol.toStringTag] === "KeyObject";
-    isKeyLike = (key2) => isCryptoKey(key2) || isKeyObject(key2);
+    isKeyObject = (key) => key?.[Symbol.toStringTag] === "KeyObject";
+    isKeyLike = (key) => isCryptoKey(key) || isKeyObject(key);
     unusable = (name, prop = "algorithm.name") => new TypeError(`CryptoKey does not support this operation, its ${prop} must be ${name}`);
   }
 });
@@ -553,7 +553,7 @@ function encodeCompactUnencodedPayload(payload) {
     });
   }
 }
-async function verifySignature(jws, shared, key2, encodeUnencodedPayload, parsedProtected) {
+async function verifySignature(jws, shared, key, encodeUnencodedPayload, parsedProtected) {
   const { protected: encodedProtectedHeader, header, payload: inputPayload } = jws, protectedHeader = parsedProtected ?? parseProtectedHeader(encodedProtectedHeader);
   if (!isDisjoint(protectedHeader, header))
     throw new JWSInvalid("JWS Protected and JWS Unprotected Header Parameter names must be disjoint");
@@ -569,8 +569,8 @@ async function verifySignature(jws, shared, key2, encodeUnencodedPayload, parsed
     throw new JWSInvalid("JWS Payload must be a string or an Uint8Array instance");
   const signingPayload = b64 || typeof inputPayload != "string" ? inputPayload : encodeUnencodedPayload(inputPayload);
   let resolvedKey = false;
-  typeof key2 == "function" && (key2 = await key2(protectedHeader, jws), resolvedKey = true);
-  const entry = jwsAlgorithm(alg), signingInput = concat(encodedProtectedHeader !== void 0 ? encode3(encodedProtectedHeader) : new Uint8Array(), encode3("."), typeof signingPayload == "string" ? shared[2] ??= encodeAsciiMember(signingPayload, "payload", JWSInvalid) : signingPayload), signature2 = decodeBase64url(jws.signature, "signature", JWSInvalid), verificationKey = await prepareKey(entry, key2, "verify"), cryptoKey = await rawKey(verificationKey, entry.subtle, "verify");
+  typeof key == "function" && (key = await key(protectedHeader, jws), resolvedKey = true);
+  const entry = jwsAlgorithm(alg), signingInput = concat(encodedProtectedHeader !== void 0 ? encode3(encodedProtectedHeader) : new Uint8Array(), encode3("."), typeof signingPayload == "string" ? shared[2] ??= encodeAsciiMember(signingPayload, "payload", JWSInvalid) : signingPayload), signature2 = decodeBase64url(jws.signature, "signature", JWSInvalid), verificationKey = await prepareKey(entry, key, "verify"), cryptoKey = await rawKey(verificationKey, entry.subtle, "verify");
   entry.minRsaBits && checkModulusLength(entry.alg, cryptoKey);
   let verified = false;
   try {
@@ -583,13 +583,13 @@ async function verifySignature(jws, shared, key2, encodeUnencodedPayload, parsed
   const result = { payload: typeof signingPayload == "string" ? decodeBase64url(signingPayload, "payload", JWSInvalid) : signingPayload };
   return encodedProtectedHeader !== void 0 && (result.protectedHeader = protectedHeader), header !== void 0 && (result.unprotectedHeader = header), resolvedKey ? [{ ...result, key: verificationKey }, b64] : [result, b64];
 }
-async function verifyCompact(jws, shared, key2) {
+async function verifyCompact(jws, shared, key) {
   if (jws instanceof Uint8Array && (jws = decoder.decode(jws)), typeof jws != "string")
     throw new JWSInvalid("Compact JWS must be a string or Uint8Array");
   const { 0: protectedHeader, 1: payload, 2: signature2, length } = jws.split(".");
   if (length !== 3)
     throw new JWSInvalid("Invalid Compact JWS");
-  return verifySignature({ payload, protected: protectedHeader, signature: signature2 }, shared, key2, encodeCompactUnencodedPayload);
+  return verifySignature({ payload, protected: protectedHeader, signature: signature2 }, shared, key, encodeCompactUnencodedPayload);
 }
 var init_jws_verify = __esm({
   "node_modules/jose/dist/webapi/lib/jws_verify.js"() {
@@ -700,8 +700,8 @@ var init_jwt_claims_set = __esm({
 });
 
 // node_modules/jose/dist/webapi/jwt/verify.js
-async function jwtVerify(jwt2, key2, options) {
-  const [verified, b64] = await verifyCompact(jwt2, prepareVerify(options), key2);
+async function jwtVerify(jwt2, key, options) {
+  const [verified, b64] = await verifyCompact(jwt2, prepareVerify(options), key);
   if (!b64)
     throw new JWTInvalid("JWTs MUST NOT use unencoded payload");
   const payload = validateClaimsSet(verified.protectedHeader, verified.payload, options);
@@ -723,10 +723,10 @@ function isUsableJWK(jwk, entry, alg, kid) {
 async function importWithAlgCache(cache2, jwk, entry) {
   const cached2 = cache2.get(jwk) || cache2.set(jwk, {}).get(jwk), { alg } = entry;
   if (cached2[alg] === void 0) {
-    const pending = jwkToKey(entry, jwk, true).then((key2) => {
-      if (key2.type !== "public")
+    const pending = jwkToKey(entry, jwk, true).then((key) => {
+      if (key.type !== "public")
         throw new JWKSInvalid("JSON Web Key Set members must be public keys");
-      return cached2[alg] = key2, key2;
+      return cached2[alg] = key, key;
     }).catch((error62) => {
       throw cached2[alg] === pending && delete cached2[alg], error62;
     });
@@ -1115,7 +1115,7 @@ var require_polyfills = __commonJS({
       }
       if (platform === "win32") {
         fs.rename = typeof fs.rename !== "function" ? fs.rename : (function(fs$rename) {
-          function rename2(from, to, cb) {
+          function rename(from, to, cb) {
             var start = Date.now();
             var backoff = 0;
             fs$rename(from, to, function CB(er) {
@@ -1135,8 +1135,8 @@ var require_polyfills = __commonJS({
               if (cb) cb(er);
             });
           }
-          if (Object.setPrototypeOf) Object.setPrototypeOf(rename2, fs$rename);
-          return rename2;
+          if (Object.setPrototypeOf) Object.setPrototypeOf(rename, fs$rename);
+          return rename;
         })(fs.rename);
       }
       fs.read = typeof fs.read !== "function" ? fs.read : (function(fs$read) {
@@ -1360,8 +1360,8 @@ var require_legacy_streams = __commonJS({
         options = options || {};
         var keys = Object.keys(options);
         for (var index = 0, length = keys.length; index < length; index++) {
-          var key2 = keys[index];
-          this[key2] = options[key2];
+          var key = keys[index];
+          this[key] = options[key];
         }
         if (this.encoding) this.setEncoding(this.encoding);
         if (this.start !== void 0) {
@@ -1408,8 +1408,8 @@ var require_legacy_streams = __commonJS({
         options = options || {};
         var keys = Object.keys(options);
         for (var index = 0, length = keys.length; index < length; index++) {
-          var key2 = keys[index];
-          this[key2] = options[key2];
+          var key = keys[index];
+          this[key] = options[key];
         }
         if (this.start !== void 0) {
           if ("number" !== typeof this.start) {
@@ -1447,8 +1447,8 @@ var require_clone = __commonJS({
         var copy = { __proto__: getPrototypeOf(obj) };
       else
         var copy = /* @__PURE__ */ Object.create(null);
-      Object.getOwnPropertyNames(obj).forEach(function(key2) {
-        Object.defineProperty(copy, key2, Object.getOwnPropertyDescriptor(obj, key2));
+      Object.getOwnPropertyNames(obj).forEach(function(key) {
+        Object.defineProperty(copy, key, Object.getOwnPropertyDescriptor(obj, key));
       });
       return copy;
     }
@@ -1540,8 +1540,8 @@ var require_graceful_fs = __commonJS({
       fs2.createReadStream = createReadStream;
       fs2.createWriteStream = createWriteStream;
       var fs$readFile = fs2.readFile;
-      fs2.readFile = readFile3;
-      function readFile3(path, options, cb) {
+      fs2.readFile = readFile2;
+      function readFile2(path, options, cb) {
         if (typeof options === "function")
           cb = options, options = null;
         return go$readFile(path, options, cb);
@@ -1557,8 +1557,8 @@ var require_graceful_fs = __commonJS({
         }
       }
       var fs$writeFile = fs2.writeFile;
-      fs2.writeFile = writeFile2;
-      function writeFile2(path, data, options, cb) {
+      fs2.writeFile = writeFile;
+      function writeFile(path, data, options, cb) {
         if (typeof options === "function")
           cb = options, options = null;
         return go$writeFile(path, data, options, cb);
@@ -1979,8 +1979,8 @@ var require_retry = __commonJS({
         maxTimeout: Infinity,
         randomize: false
       };
-      for (var key2 in options) {
-        opts[key2] = options[key2];
+      for (var key in options) {
+        opts[key] = options[key];
       }
       if (opts.minTimeout > opts.maxTimeout) {
         throw new Error("minTimeout is greater than maxTimeout");
@@ -2010,9 +2010,9 @@ var require_retry = __commonJS({
       }
       if (!methods) {
         methods = [];
-        for (var key2 in obj) {
-          if (typeof obj[key2] === "function") {
-            methods.push(key2);
+        for (var key in obj) {
+          if (typeof obj[key] === "function") {
+            methods.push(key);
           }
         }
       }
@@ -2625,170 +2625,95 @@ var require_proper_lockfile = __commonJS({
   }
 });
 
-// server/account/credential-encryption.ts
+// server/account/account-keychain.ts
 import { execFile } from "node:child_process";
-import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
-function security(args, input2) {
+import { createHash } from "node:crypto";
+function keychainAccount(folder) {
+  return `account-state-v1-${createHash("sha256").update(folder).digest("hex")}`;
+}
+function run(operation, account, state) {
   return new Promise((resolve, reject) => {
-    const child = execFile("/usr/bin/security", args, { timeout: 3e4 }, (error62, stdout) => {
-      if (error62)
-        reject(
-          Object.assign(new Error("macOS \uD0A4\uCCB4\uC778\uC5D0 \uC811\uADFC\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4."), { code: error62.code })
-        );
-      else resolve(stdout.trim());
-    });
+    const child = execFile(
+      "/usr/bin/osascript",
+      ["-l", "JavaScript", "-e", script, operation, keychainService, account],
+      { timeout: 3e4 },
+      (error62, stdout) => {
+        if (error62) reject(new Error("macOS \uD0A4\uCCB4\uC778\uC5D0 \uC811\uADFC\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4."));
+        else resolve(stdout.trim());
+      }
+    );
     child.stdin?.on("error", reject);
-    child.stdin?.end(input2);
+    child.stdin?.end(state);
   });
 }
-async function key(create) {
-  const lookup = ["find-generic-password", "-s", service, "-a", account, "-w"];
-  let value;
-  try {
-    value = await security(lookup);
-  } catch (error62) {
-    if (!create || !(error62 instanceof Error && "code" in error62 && error62.code === 44)) throw error62;
-    await security(
-      ["-i"],
-      `add-generic-password -s ${service} -a ${account} -w ${randomBytes(32).toString("hex")}
-`
-    );
-    value = await security(lookup);
-  }
-  if (!/^[0-9a-f]{64}$/.test(value)) throw new Error("\uD0A4\uCCB4\uC778\uC5D0 \uC800\uC7A5\uB41C \uC554\uD638\uD654 \uD0A4\uB97C \uD655\uC778\uD574 \uC8FC\uC138\uC694.");
-  return Buffer.from(value, "hex");
-}
-var service, account, credentialEncryption;
-var init_credential_encryption = __esm({
-  "server/account/credential-encryption.ts"() {
+var keychainService, script, accountKeychain;
+var init_account_keychain = __esm({
+  "server/account/account-keychain.ts"() {
     "use strict";
-    service = "dev.2sky.hacker-news.chatgpt";
-    account = "credential-encryption-v1";
-    credentialEncryption = {
-      id: "macos-keychain-aes256gcm-v1",
-      async encrypt(plaintext) {
-        const iv = randomBytes(12);
-        const cipher = createCipheriv("aes-256-gcm", await key(true), iv);
-        const data = Buffer.concat([cipher.update(plaintext, "utf8"), cipher.final()]);
-        return Buffer.concat([iv, cipher.getAuthTag(), data]);
+    keychainService = "com.2skydev.hacker-news";
+    script = `
+ObjC.import("Foundation");
+ObjC.import("Security");
+
+function run([operation, service, account]) {
+  const value = (name) => ObjC.castRefToObject($[name]);
+  const query = $.NSMutableDictionary.dictionary;
+  query.setObjectForKey(value("kSecClassGenericPassword"), value("kSecClass"));
+  query.setObjectForKey($(service), value("kSecAttrService"));
+  query.setObjectForKey($(account), value("kSecAttrAccount"));
+  const missing = Number($.errSecItemNotFound);
+
+  if (operation === "read") {
+    query.setObjectForKey($(true), value("kSecReturnData"));
+    const result = Ref();
+    const status = $.SecItemCopyMatching(query, result);
+    if (status === missing) return "";
+    if (status !== 0) throw Error(String(status));
+    const data = ObjC.castRefToObject(result[0]);
+    return ObjC.unwrap($.NSString.alloc.initWithDataEncoding(data, $.NSUTF8StringEncoding));
+  }
+
+  const data = $.NSFileHandle.fileHandleWithStandardInput.readDataToEndOfFile;
+  const updates = $.NSMutableDictionary.dictionary;
+  updates.setObjectForKey(data, value("kSecValueData"));
+  let status = $.SecItemUpdate(query, updates);
+  if (status === missing) {
+    query.addEntriesFromDictionary(updates);
+    status = $.SecItemAdd(query, null);
+  }
+  if (status !== 0) throw Error(String(status));
+}
+`;
+    accountKeychain = {
+      async read(account) {
+        return await run("read", account) || void 0;
       },
-      async decrypt(bytes) {
-        const data = Buffer.from(bytes);
-        const cipher = createDecipheriv("aes-256-gcm", await key(false), data.subarray(0, 12));
-        cipher.setAuthTag(data.subarray(12, 28));
-        return Buffer.concat([cipher.update(data.subarray(28)), cipher.final()]).toString("utf8");
+      async write(account, state) {
+        await run("write", account, state);
       }
     };
   }
 });
 
 // server/account/account-store.ts
-import { randomUUID } from "node:crypto";
-import { chmod, mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
+import { chmod, mkdir, realpath } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
-function sdkAccount(state, host) {
-  if (state.version !== 2) throw new Error("\uC800\uC7A5\uB41C \uACC4\uC815 \uD615\uC2DD\uC744 \uD655\uC778\uD574 \uC8FC\uC138\uC694.");
-  const tokens = (credentials, scopes, id2) => ({
-    access: credentials.accessToken,
-    refresh: credentials.refreshToken,
-    expires: credentials.expiresAt,
-    earliest: typeof credentials.earliestRefreshAt === "number" ? credentials.earliestRefreshAt * 1e3 : Date.parse(credentials.earliestRefreshAt ?? "") || 0,
-    scopes,
-    ...id2 && { id: id2 }
-  });
-  const profiles = state.profiles.map((profile) => ({
-    clientId: profile.clientId,
-    subject: profile.subject,
-    label: profile.identity?.email || profile.identity?.name || profile.label,
-    ...profile.credentials && {
-      tokens: tokens(profile.credentials, profile.scopes, profile.profileIdToken)
-    },
-    ...profile.pendingRefresh && {
-      rotation: {
-        tokens: tokens(
-          profile.pendingRefresh.credentials,
-          profile.pendingRefresh.scopes,
-          profile.pendingRefresh.idToken
-        ),
-        newIdentity: true,
-        received: profile.pendingRefresh.receivedAt
-      }
-    }
-  }));
-  return {
-    host,
-    revision: 0,
-    profiles: [...profiles, ...state.pendingRegistrations.map(({ clientId }) => ({ clientId }))],
-    active: state.profiles.find((profile) => profile.id === state.activeProfileId)?.clientId ?? state.pendingRegistrations[0]?.clientId ?? null
-  };
-}
-async function jsonFile(path) {
-  try {
-    return JSON.parse(await readFile(path, "utf8"));
-  } catch (error62) {
-    if (!(error62 instanceof Error && "code" in error62 && error62.code === "ENOENT")) throw error62;
-  }
-}
-function accountStore(dir = process.env.HN_DATA_DIR || join(homedir(), ".local", "share", "hacker-news"), encryption = credentialEncryption) {
+function accountStore(dir = process.env.HN_DATA_DIR || join(homedir(), ".local", "share", "hacker-news"), keychain = accountKeychain) {
   const folder = join(dir, "account");
-  const path = join(folder, "accounts.json");
-  async function unpack(value) {
-    if (value.version !== 3 || value.provider !== encryption.id)
-      throw new Error("\uC800\uC7A5\uB41C \uACC4\uC815\uC758 \uC554\uD638\uD654 \uD615\uC2DD\uC744 \uD655\uC778\uD574 \uC8FC\uC138\uC694.");
-    return JSON.parse(await encryption.decrypt(Buffer.from(value.ciphertext, "base64")));
-  }
-  async function load() {
-    const saved = await jsonFile(path);
-    if (saved && "version" in saved && saved.version === 3) return unpack(saved);
-    if (saved) {
-      const state = saved;
-      if (state.profiles.length) await write(state);
-      return state;
-    }
-    const host = (await jsonFile(join(folder, "chatgpt-host.json")))?.id;
-    const sdkPath = join(folder, "chatgpt-auth.json");
-    const previous = await jsonFile(sdkPath);
-    if (!previous) return { host, profiles: [], active: null, revision: 0 };
-    const converted = sdkAccount(await unpack(previous), host);
-    await write(converted);
-    await rm(sdkPath);
-    return converted;
-  }
-  async function write(data) {
-    const temp = join(folder, `${randomUUID()}.tmp`);
-    try {
-      const record2 = data.profiles.length ? {
-        version: 3,
-        provider: encryption.id,
-        ciphertext: Buffer.from(await encryption.encrypt(JSON.stringify(data))).toString(
-          "base64"
-        )
-      } : data;
-      await writeFile(temp, JSON.stringify(record2), { mode: 384, flag: "wx", flush: true });
-      await rename(temp, path);
-    } finally {
-      await rm(temp, { force: true });
-    }
-  }
   async function exclusive(action) {
     await mkdir(folder, { recursive: true, mode: 448 });
     await chmod(folder, 448);
+    const location = await realpath(folder);
+    const account = keychainAccount(location);
     const options = { stale: 12e4, retries: { retries: 70, maxTimeout: 400, minTimeout: 25 } };
-    const unlockSdk = await import_proper_lockfile.default.lock(path, {
-      ...options,
-      realpath: false,
-      lockfilePath: join(folder, ".chatgpt-auth.lock")
-    });
+    const unlock = await import_proper_lockfile.default.lock(location, { ...options, realpath: false });
     try {
-      const unlock = await import_proper_lockfile.default.lock(folder, options);
-      try {
-        return await action(await load(), write);
-      } finally {
-        await unlock();
-      }
+      const saved = await keychain.read(account);
+      const data = saved ? JSON.parse(saved) : { profiles: [], active: null, revision: 0 };
+      return await action(data, (state) => keychain.write(account, JSON.stringify(state)));
     } finally {
-      await unlockSdk();
+      await unlock();
     }
   }
   return { read: () => exclusive((data) => data), exclusive };
@@ -2798,7 +2723,7 @@ var init_account_store = __esm({
   "server/account/account-store.ts"() {
     "use strict";
     import_proper_lockfile = __toESM(require_proper_lockfile(), 1);
-    init_credential_encryption();
+    init_account_keychain();
   }
 });
 
@@ -2813,7 +2738,7 @@ __export(account_service_exports, {
   translateBatch: () => translateBatch,
   verifyIdentity: () => verifyIdentity
 });
-import { createHash, randomBytes as randomBytes2, randomUUID as randomUUID2 } from "node:crypto";
+import { createHash as createHash2, randomBytes, randomUUID } from "node:crypto";
 import { createServer } from "node:http";
 function canTranslate(tokens) {
   return Boolean(
@@ -2937,7 +2862,7 @@ function createAccountService({
     try {
       const host = await store.exclusive(async (data, write) => {
         if (!data.host) {
-          data.host = `urn:uuid:${randomUUID2()}`;
+          data.host = `urn:uuid:${randomUUID()}`;
           await write(data);
         }
         attempt.revision = data.revision;
@@ -3000,7 +2925,7 @@ function createAccountService({
         state: attempt.state,
         nonce: attempt.nonce,
         code_challenge_method: "S256",
-        code_challenge: createHash("sha256").update(attempt.verifier).digest("base64url"),
+        code_challenge: createHash2("sha256").update(attempt.verifier).digest("base64url"),
         ...attempt.profile?.tokens && !attempt.profile.tokens.scopes.includes(sharing) && { prompt: "consent" }
       }).toString();
       attempt.url = url2.href;
@@ -3193,14 +3118,14 @@ var init_account_service = __esm({
     disconnected = () => issue2("disconnected", "ChatGPT \uACC4\uC815\uC5D0 \uC5F0\uACB0\uD558\uACE0 \uD50C\uB79C \uC0AC\uC6A9\uC744 \uD5C8\uC6A9\uD574 \uC8FC\uC138\uC694.");
     changed = () => issue2("account_changed", "ChatGPT \uACC4\uC815\uC774 \uBCC0\uACBD\uB418\uC5C8\uC2B5\uB2C8\uB2E4. \uB2E4\uC2DC \uC2DC\uB3C4\uD574 \uC8FC\uC138\uC694.");
     failedLogin = () => issue2("sign_in_failed", "ChatGPT \uB85C\uADF8\uC778\uC744 \uC644\uB8CC\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4. \uB2E4\uC2DC \uC2DC\uB3C4\uD574 \uC8FC\uC138\uC694.");
-    secret = () => randomBytes2(32).toString("base64url");
+    secret = () => randomBytes(32).toString("base64url");
     active = (data) => data.profiles.find((p) => p.clientId === data.active);
     ({ accountStatus, beginSignIn, signOut, translateBatch, listModels } = createAccountService());
   }
 });
 
 // server/mcp/reader.ts
-import { readFile as readFile2 } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 
 // node_modules/@modelcontextprotocol/server/dist/chunk-vYduTEsO.mjs
 var __create2 = Object.create;
@@ -3225,12 +3150,12 @@ var __exportAll = (all, symbols) => {
 };
 var __copyProps2 = (to, from, except, desc) => {
   if (from && typeof from === "object" || typeof from === "function") {
-    for (var keys = __getOwnPropNames2(from), i = 0, n = keys.length, key2; i < n; i++) {
-      key2 = keys[i];
-      if (!__hasOwnProp2.call(to, key2) && key2 !== except) {
-        __defProp2(to, key2, {
-          get: ((k) => from[k]).bind(null, key2),
-          enumerable: !(desc = __getOwnPropDesc2(from, key2)) || desc.enumerable
+    for (var keys = __getOwnPropNames2(from), i = 0, n = keys.length, key; i < n; i++) {
+      key = keys[i];
+      if (!__hasOwnProp2.call(to, key) && key !== except) {
+        __defProp2(to, key, {
+          get: ((k) => from[k]).bind(null, key),
+          enumerable: !(desc = __getOwnPropDesc2(from, key)) || desc.enumerable
         });
       }
     }
@@ -3982,9 +3907,9 @@ function floatSafeRemainder(val, step) {
   return ratio - roundedRatio;
 }
 var EVALUATING = /* @__PURE__ */ Symbol("evaluating");
-function defineLazy(object2, key2, getter) {
+function defineLazy(object2, key, getter) {
   let value = void 0;
-  Object.defineProperty(object2, key2, {
+  Object.defineProperty(object2, key, {
     get() {
       if (value === EVALUATING) {
         return void 0;
@@ -3996,7 +3921,7 @@ function defineLazy(object2, key2, getter) {
       return value;
     },
     set(v) {
-      Object.defineProperty(object2, key2, {
+      Object.defineProperty(object2, key, {
         value: v
         // configurable: true,
       });
@@ -4022,47 +3947,47 @@ function rawShape(def) {
 function sourceShape(schema) {
   return rawShape(schema._zod.def) ?? schema._zod.def.shape;
 }
-function deferProp(target, key2, getter) {
-  Object.defineProperty(target, key2, {
+function deferProp(target, key, getter) {
+  Object.defineProperty(target, key, {
     get() {
       const value = getter();
-      assignProp(this, key2, value);
+      assignProp(this, key, value);
       return value;
     },
     enumerable: true,
     configurable: true
   });
 }
-function putProp(target, key2, value) {
-  if (key2 in target)
-    assignProp(target, key2, value);
+function putProp(target, key, value) {
+  if (key in target)
+    assignProp(target, key, value);
   else
-    target[key2] = value;
+    target[key] = value;
 }
 function mirrorShape(target, source, keys, wrap) {
   const raw = sourceShape(source);
-  for (const key2 of keys) {
-    const desc = Object.getOwnPropertyDescriptor(raw, key2);
+  for (const key of keys) {
+    const desc = Object.getOwnPropertyDescriptor(raw, key);
     if (!desc.enumerable)
       continue;
     if (desc.get) {
-      deferProp(target, key2, () => {
-        const value = source._zod.def.shape[key2];
-        return wrap ? wrap(value, key2) : value;
+      deferProp(target, key, () => {
+        const value = source._zod.def.shape[key];
+        return wrap ? wrap(value, key) : value;
       });
     } else
-      putProp(target, key2, wrap ? wrap(desc.value, key2) : desc.value);
+      putProp(target, key, wrap ? wrap(desc.value, key) : desc.value);
   }
 }
 function mirrorProps(target, source) {
-  for (const key2 of Reflect.ownKeys(source)) {
-    const desc = Object.getOwnPropertyDescriptor(source, key2);
+  for (const key of Reflect.ownKeys(source)) {
+    const desc = Object.getOwnPropertyDescriptor(source, key);
     if (!desc.enumerable)
       continue;
     if (desc.get)
-      deferProp(target, key2, () => source[key2]);
+      deferProp(target, key, () => source[key]);
     else
-      putProp(target, key2, desc.value);
+      putProp(target, key, desc.value);
   }
 }
 function mergeDefs(...defs) {
@@ -4079,11 +4004,11 @@ function cloneDef(schema) {
 function getElementAtPath(obj, path) {
   if (!path)
     return obj;
-  return path.reduce((acc, key2) => acc?.[key2], obj);
+  return path.reduce((acc, key) => acc?.[key], obj);
 }
 function promiseAllObject(promisesObj) {
   const keys = Object.keys(promisesObj);
-  const promises = keys.map((key2) => promisesObj[key2]);
+  const promises = keys.map((key) => promisesObj[key]);
   return Promise.all(promises).then((results) => {
     const resolvedObj = {};
     for (let i = 0; i < keys.length; i++) {
@@ -4155,8 +4080,8 @@ function shallowClone(o) {
 }
 function numKeys(data) {
   let keyCount = 0;
-  for (const key2 in data) {
-    if (Object.prototype.hasOwnProperty.call(data, key2)) {
+  for (const key in data) {
+    if (Object.prototype.hasOwnProperty.call(data, key)) {
       keyCount++;
     }
   }
@@ -4310,12 +4235,12 @@ function pick(schema, mask) {
 function maskedKeys(schema, mask) {
   const raw = sourceShape(schema);
   const keys = [];
-  for (const key2 of Reflect.ownKeys(mask)) {
-    if (!Object.getOwnPropertyDescriptor(raw, key2)?.enumerable) {
-      throw new Error(`Unrecognized key: "${String(key2)}"`);
+  for (const key of Reflect.ownKeys(mask)) {
+    if (!Object.getOwnPropertyDescriptor(raw, key)?.enumerable) {
+      throw new Error(`Unrecognized key: "${String(key)}"`);
     }
-    if (mask[key2])
-      keys.push(key2);
+    if (mask[key])
+      keys.push(key);
   }
   return keys;
 }
@@ -4328,7 +4253,7 @@ function omit(schema, mask) {
   }
   const omitted = new Set(maskedKeys(schema, mask));
   const newShape = {};
-  mirrorShape(newShape, schema, Reflect.ownKeys(sourceShape(schema)).filter((key2) => !omitted.has(key2)));
+  mirrorShape(newShape, schema, Reflect.ownKeys(sourceShape(schema)).filter((key) => !omitted.has(key)));
   return clone(schema, mergeDefs(currDef, { shape: newShape, checks: [] }));
 }
 function extend(schema, shape) {
@@ -4339,8 +4264,8 @@ function extend(schema, shape) {
   const hasChecks = checks && checks.length > 0;
   if (hasChecks) {
     const existingShape = sourceShape(schema);
-    for (const key2 of Reflect.ownKeys(shape)) {
-      if (Object.getOwnPropertyDescriptor(existingShape, key2) !== void 0) {
+    for (const key of Reflect.ownKeys(shape)) {
+      if (Object.getOwnPropertyDescriptor(existingShape, key) !== void 0) {
         throw new Error("Cannot overwrite keys on object schemas containing refinements. Use `.safeExtend()` instead.");
       }
     }
@@ -4387,15 +4312,15 @@ function partial(Class2, schema, mask, name = "partial") {
   }
   const selected = mask ? new Set(maskedKeys(schema, mask)) : void 0;
   const newShape = {};
-  mirrorShape(newShape, schema, Reflect.ownKeys(sourceShape(schema)), Class2 && ((value, key2) => selected && !selected.has(key2) ? value : new Class2({ type: "optional", innerType: value })));
+  mirrorShape(newShape, schema, Reflect.ownKeys(sourceShape(schema)), Class2 && ((value, key) => selected && !selected.has(key) ? value : new Class2({ type: "optional", innerType: value })));
   return clone(schema, mergeDefs(schema._zod.def, { shape: newShape, checks: [] }));
 }
 function required(Class2, schema, mask) {
   const selected = mask ? new Set(maskedKeys(schema, mask)) : void 0;
   const newShape = {};
-  mirrorShape(newShape, schema, Reflect.ownKeys(sourceShape(schema)), (value, key2) => (
+  mirrorShape(newShape, schema, Reflect.ownKeys(sourceShape(schema)), (value, key) => (
     // overwrite with non-optional
-    selected && !selected.has(key2) ? value : new Class2({ type: "nonoptional", innerType: value })
+    selected && !selected.has(key) ? value : new Class2({ type: "nonoptional", innerType: value })
   ));
   return clone(schema, mergeDefs(schema._zod.def, { shape: newShape }));
 }
@@ -4582,46 +4507,46 @@ var Class = class {
   }
 };
 function members(proto, table2) {
-  for (const key2 in table2) {
-    const desc = Object.getOwnPropertyDescriptor(table2, key2);
+  for (const key in table2) {
+    const desc = Object.getOwnPropertyDescriptor(table2, key);
     if (desc.get)
-      Object.defineProperty(proto, key2, { ...desc, enumerable: false });
+      Object.defineProperty(proto, key, { ...desc, enumerable: false });
     else
-      defineBound(proto, key2, desc.value);
+      defineBound(proto, key, desc.value);
   }
 }
-function own(inst, key2, value, enumerable = true) {
-  Object.defineProperty(inst, key2, { configurable: true, writable: true, enumerable, value });
+function own(inst, key, value, enumerable = true) {
+  Object.defineProperty(inst, key, { configurable: true, writable: true, enumerable, value });
   return value;
 }
-function hide(inst, key2, value) {
-  return own(inst, key2, value, false);
+function hide(inst, key, value) {
+  return own(inst, key, value, false);
 }
 // @__NO_SIDE_EFFECTS__
 function derived(computes, table2) {
-  for (const key2 in computes) {
-    const compute = computes[key2];
-    Object.defineProperty(table2, key2, {
+  for (const key in computes) {
+    const compute = computes[key];
+    Object.defineProperty(table2, key, {
       configurable: true,
       enumerable: true,
       get() {
-        return own(this, key2, compute(this));
+        return own(this, key, compute(this));
       },
       set(value) {
-        own(this, key2, value);
+        own(this, key, value);
       }
     });
   }
   return table2;
 }
-function defineBound(proto, key2, fn) {
-  Object.defineProperty(proto, key2, {
+function defineBound(proto, key, fn) {
+  Object.defineProperty(proto, key, {
     configurable: true,
     get() {
-      return this == null ? fn : own(this, key2, fn.bind(this));
+      return this == null ? fn : own(this, key, fn.bind(this));
     },
     set(value) {
-      own(this, key2, value);
+      own(this, key, value);
     }
   });
 }
@@ -4638,53 +4563,53 @@ var breaker = {
     return void 0;
   }
 };
-function defineLazyInternal(inst, key2, compute) {
+function defineLazyInternal(inst, key, compute) {
   const proto = Object.getPrototypeOf(inst._zod);
-  if (key2 in proto && installing !== inst._zod) {
+  if (key in proto && installing !== inst._zod) {
     installing = void 0;
     return;
   }
   installing = inst._zod;
-  Object.defineProperty(proto, key2, {
+  Object.defineProperty(proto, key, {
     configurable: true,
     get() {
-      Object.defineProperty(this, key2, breaker);
+      Object.defineProperty(this, key, breaker);
       const outer = broke;
       broke = false;
       try {
         const value = compute(this);
         if (broke)
-          delete this[key2];
+          delete this[key];
         else
-          Object.defineProperty(this, key2, { configurable: true, writable: true, value });
+          Object.defineProperty(this, key, { configurable: true, writable: true, value });
         broke = broke || outer;
         return value;
       } catch (err) {
-        delete this[key2];
+        delete this[key];
         broke = broke || outer;
         throw err;
       }
     },
     set(value) {
-      Object.defineProperty(this, key2, { configurable: true, writable: true, value });
+      Object.defineProperty(this, key, { configurable: true, writable: true, value });
     }
   });
 }
-function installLazyProp(inst, key2, make, enumerable) {
-  const proto = claim(inst, key2);
+function installLazyProp(inst, key, make, enumerable) {
+  const proto = claim(inst, key);
   if (!proto)
     return;
-  Object.defineProperty(proto, key2, {
+  Object.defineProperty(proto, key, {
     configurable: true,
     get() {
       const desc = { configurable: true, writable: true, enumerable, value: void 0 };
-      Object.defineProperty(this, key2, desc);
+      Object.defineProperty(this, key, desc);
       desc.value = make(this);
-      Object.defineProperty(this, key2, desc);
+      Object.defineProperty(this, key, desc);
       return desc.value;
     },
     set(value) {
-      Object.defineProperty(this, key2, { configurable: true, writable: true, enumerable, value });
+      Object.defineProperty(this, key, { configurable: true, writable: true, enumerable, value });
     }
   });
 }
@@ -4861,15 +4786,15 @@ var $ZodError = $constructor("$ZodError", initializer);
 var $ZodRealError = $constructor("$ZodError", initializer, void 0, {
   Parent: Error
 });
-function node(obj, key2, make) {
-  if (!Object.prototype.hasOwnProperty.call(obj, key2)) {
-    if (key2 === "__proto__") {
-      Object.defineProperty(obj, key2, { value: make(), writable: true, enumerable: true, configurable: true });
+function node(obj, key, make) {
+  if (!Object.prototype.hasOwnProperty.call(obj, key)) {
+    if (key === "__proto__") {
+      Object.defineProperty(obj, key, { value: make(), writable: true, enumerable: true, configurable: true });
     } else {
-      obj[key2] = make();
+      obj[key] = make();
     }
   }
-  return obj[key2];
+  return obj[key];
 }
 function flattenError(error62, mapper = (issue3) => issue3.message) {
   const fieldErrors = {};
@@ -5778,16 +5703,16 @@ var $ZodCheckProperties = /* @__PURE__ */ $constructor("$ZodCheckProperties", (i
       payload.issues.push({ expected: "object", code: "invalid_type", input: payload.value, inst });
       return void 0;
     }
-    entries ?? (entries = Reflect.ownKeys(def.shape).map((key2) => [key2, def.shape[key2]]));
+    entries ?? (entries = Reflect.ownKeys(def.shape).map((key) => [key, def.shape[key]]));
     const input2 = payload.value;
     let proms;
-    for (const [key2, schema] of entries) {
-      const result = schema._zod.run({ value: input2[key2], issues: [] }, {});
+    for (const [key, schema] of entries) {
+      const result = schema._zod.run({ value: input2[key], issues: [] }, {});
       if (result instanceof Promise) {
         proms ?? (proms = []);
-        proms.push(result.then((result2) => handleCheckPropertyResult(result2, payload, key2)));
+        proms.push(result.then((result2) => handleCheckPropertyResult(result2, payload, key)));
       } else {
-        handleCheckPropertyResult(result, payload, key2);
+        handleCheckPropertyResult(result, payload, key);
       }
     }
     if (proms)
@@ -6688,8 +6613,8 @@ var $ZodArray = /* @__PURE__ */ $constructor("$ZodArray", (inst, def) => {
   };
   capSize(inst, arraySize);
 });
-function handlePropertyResult(result, final, key2, input2, optin, optout) {
-  const isPresent = key2 in input2;
+function handlePropertyResult(result, final, key, input2, optin, optout) {
+  const isPresent = key in input2;
   const isOptionalOut = optout === "optional";
   if (!isPresent && isOptionalOut && optin === "optional") {
     return;
@@ -6698,7 +6623,7 @@ function handlePropertyResult(result, final, key2, input2, optin, optout) {
     if (optin !== void 0 && isOptionalOut && !isPresent) {
       return;
     }
-    final.issues.push(...prefixIssues(key2, result.issues));
+    final.issues.push(...prefixIssues(key, result.issues));
   }
   if (!isPresent && optin === void 0) {
     if (!result.issues.length) {
@@ -6706,17 +6631,17 @@ function handlePropertyResult(result, final, key2, input2, optin, optout) {
         code: "invalid_type",
         expected: "nonoptional",
         input: void 0,
-        path: [key2]
+        path: [key]
       });
     }
     return;
   }
   if (result.value === void 0) {
     if (isPresent || optin === "defaulted" && !isOptionalOut) {
-      final.value[key2] = void 0;
+      final.value[key] = void 0;
     }
   } else {
-    final.value[key2] = result.value;
+    final.value[key] = result.value;
   }
 }
 var NO_SYMBOL_KEYS = [];
@@ -6749,28 +6674,28 @@ function handleCatchall(proms, input2, payload, ctx, def, inst, abortEarly) {
   const optin = _catchall.optin;
   const optout = _catchall.optout;
   let seen = 0;
-  for (const key2 in input2) {
+  for (const key in input2) {
     if (abortEarly && payload.issues.length !== seen) {
       if (aborted(payload, seen))
         break;
       seen = payload.issues.length;
     }
-    if (keySet.has(key2))
+    if (keySet.has(key))
       continue;
-    if (key2 === "__proto__") {
+    if (key === "__proto__") {
       if (t === "never")
-        unrecognized.push(key2);
+        unrecognized.push(key);
       continue;
     }
     if (t === "never") {
-      unrecognized.push(key2);
+      unrecognized.push(key);
       continue;
     }
-    const r = _catchall.run({ value: input2[key2], issues: [] }, ctx);
+    const r = _catchall.run({ value: input2[key], issues: [] }, ctx);
     if (r instanceof Promise) {
-      proms.push(r.then((r2) => handlePropertyResult(r2, payload, key2, input2, optin, optout)));
+      proms.push(r.then((r2) => handlePropertyResult(r2, payload, key, input2, optin, optout)));
     } else {
-      handlePropertyResult(r, payload, key2, input2, optin, optout);
+      handlePropertyResult(r, payload, key, input2, optin, optout);
     }
   }
   if (unrecognized.length) {
@@ -6807,16 +6732,16 @@ var $ZodObject = /* @__PURE__ */ $constructor("$ZodObject", (inst, def) => {
   defineLazyInternal(inst, "propValues", (zod) => {
     const shape = zod.def.shape;
     const propValues = {};
-    for (const key2 in shape) {
-      const field = shape[key2]._zod;
+    for (const key in shape) {
+      const field = shape[key]._zod;
       if (field.values) {
-        if (!Object.prototype.hasOwnProperty.call(propValues, key2)) {
-          assignProp(propValues, key2, /* @__PURE__ */ new Set());
+        if (!Object.prototype.hasOwnProperty.call(propValues, key)) {
+          assignProp(propValues, key, /* @__PURE__ */ new Set());
         }
         for (const v of field.values)
-          propValues[key2].add(v);
+          propValues[key].add(v);
         if (field.optin !== void 0)
-          propValues[key2].add(void 0);
+          propValues[key].add(void 0);
       }
     }
     return propValues;
@@ -6843,22 +6768,22 @@ var $ZodObject = /* @__PURE__ */ $constructor("$ZodObject", (inst, def) => {
     const shape = value.shape;
     const abortEarly = ctx?.abortEarly;
     let seen = payload.issues.length;
-    for (const key2 of value.allKeys) {
+    for (const key of value.allKeys) {
       if (abortEarly && payload.issues.length !== seen) {
         if (aborted(payload, seen))
           break;
         seen = payload.issues.length;
       }
-      if (key2 === "__proto__")
+      if (key === "__proto__")
         continue;
-      const el = shape[key2];
+      const el = shape[key];
       const optin = el._zod.optin;
       const optout = el._zod.optout;
-      const r = el._zod.run({ value: input2[key2], issues: [] }, ctx);
+      const r = el._zod.run({ value: input2[key], issues: [] }, ctx);
       if (r instanceof Promise) {
-        proms.push(r.then((r2) => handlePropertyResult(r2, payload, key2, input2, optin, optout)));
+        proms.push(r.then((r2) => handlePropertyResult(r2, payload, key, input2, optin, optout)));
       } else {
-        handlePropertyResult(r, payload, key2, input2, optin, optout);
+        handlePropertyResult(r, payload, key, input2, optin, optout);
       }
     }
     if (!catchall) {
@@ -6892,17 +6817,17 @@ var $ZodObjectJIT = /* @__PURE__ */ $constructor("$ZodObjectJIT", (inst, def) =>
     doc.write(`const input = payload.value;`);
     const ids = /* @__PURE__ */ Object.create(null);
     let counter = 0;
-    for (const key2 of normalized.allKeys) {
-      ids[key2] = `key_${counter++}`;
+    for (const key of normalized.allKeys) {
+      ids[key] = `key_${counter++}`;
     }
     doc.write(memo3 ? `const newResult = memo.alloc(inst, payload, {}, ctx);` : `const newResult = {};`);
-    for (const key2 of normalized.allKeys) {
-      if (key2 === "__proto__")
+    for (const key of normalized.allKeys) {
+      if (key === "__proto__")
         continue;
-      const id2 = ids[key2];
-      const k = typeof key2 === "symbol" ? `syms[${syms.indexOf(key2)}]` : esc(key2);
+      const id2 = ids[key];
+      const k = typeof key === "symbol" ? `syms[${syms.indexOf(key)}]` : esc(key);
       const isPresent = `${k} in input`;
-      const schema = shape[key2];
+      const schema = shape[key];
       const optin = schema?._zod?.optin;
       const isOptionalIn = optin !== void 0;
       const isOptionalOut = schema?._zod?.optout === "optional";
@@ -7236,21 +7161,21 @@ function mergeValues(a, b) {
   }
   if (isPlainObject(a) && isPlainObject(b)) {
     const bKeys = Object.keys(b);
-    const sharedKeys = Object.keys(a).filter((key2) => bKeys.indexOf(key2) !== -1);
+    const sharedKeys = Object.keys(a).filter((key) => bKeys.indexOf(key) !== -1);
     const newObj = { ...a, ...b };
     if (Object.prototype.hasOwnProperty.call(newObj, "__proto__"))
       delete newObj.__proto__;
-    for (const key2 of sharedKeys) {
-      if (key2 === "__proto__")
+    for (const key of sharedKeys) {
+      if (key === "__proto__")
         continue;
-      const sharedValue = mergeValues(a[key2], b[key2]);
+      const sharedValue = mergeValues(a[key], b[key]);
       if (!sharedValue.valid) {
         return {
           valid: false,
-          mergeErrorPath: [key2, ...sharedValue.mergeErrorPath]
+          mergeErrorPath: [key, ...sharedValue.mergeErrorPath]
         };
       }
-      newObj[key2] = sharedValue.data;
+      newObj[key] = sharedValue.data;
     }
     return { valid: true, data: newObj };
   }
@@ -7409,9 +7334,9 @@ var $ZodTuple = /* @__PURE__ */ $constructor("$ZodTuple", (inst, def) => {
     return handleTupleResults(itemResults, payload, items, input2, optoutStart);
   };
 });
-function getTupleOptStart(items, key2) {
+function getTupleOptStart(items, key) {
   for (let i = items.length - 1; i >= 0; i--) {
-    const omittable = key2 === "optin" ? items[i]._zod.optin !== void 0 : items[i]._zod.optout === "optional";
+    const omittable = key === "optin" ? items[i]._zod.optin !== void 0 : items[i]._zod.optout === "optional";
     if (!omittable)
       return i + 1;
   }
@@ -7469,12 +7394,12 @@ var $ZodRecord = /* @__PURE__ */ $constructor("$ZodRecord", (inst, def) => {
     if (values && !def.partial) {
       payload.value = memo3 ? memo3.alloc(inst, payload, {}, ctx) : {};
       const recordKeys = /* @__PURE__ */ new Set();
-      for (const key2 of values) {
-        if (typeof key2 === "string" || typeof key2 === "number" || typeof key2 === "symbol") {
-          recordKeys.add(typeof key2 === "number" ? key2.toString() : key2);
-          if (key2 === "__proto__")
+      for (const key of values) {
+        if (typeof key === "string" || typeof key === "number" || typeof key === "symbol") {
+          recordKeys.add(typeof key === "number" ? key.toString() : key);
+          if (key === "__proto__")
             continue;
-          const keyResult = def.keyType._zod.run({ value: key2, issues: [] }, ctx);
+          const keyResult = def.keyType._zod.run({ value: key, issues: [] }, ctx);
           if (keyResult instanceof Promise) {
             throw new Error("Async schemas not supported in object keys currently");
           }
@@ -7483,8 +7408,8 @@ var $ZodRecord = /* @__PURE__ */ $constructor("$ZodRecord", (inst, def) => {
               code: "invalid_key",
               origin: "record",
               issues: keyResult.issues.map((iss) => finalizeIssue(iss, ctx, config())),
-              input: key2,
-              path: [key2],
+              input: key,
+              path: [key],
               inst
             });
             continue;
@@ -7492,32 +7417,32 @@ var $ZodRecord = /* @__PURE__ */ $constructor("$ZodRecord", (inst, def) => {
           const outKey = keyResult.value;
           if (outKey === "__proto__")
             continue;
-          const result = def.valueType._zod.run({ value: input2[key2], issues: [] }, ctx);
+          const result = def.valueType._zod.run({ value: input2[key], issues: [] }, ctx);
           if (result instanceof Promise) {
             proms.push(result.then((result2) => {
               if (result2.issues.length) {
-                payload.issues.push(...prefixIssues(key2, result2.issues));
+                payload.issues.push(...prefixIssues(key, result2.issues));
               }
               payload.value[outKey] = result2.value;
             }));
           } else {
             if (result.issues.length) {
-              payload.issues.push(...prefixIssues(key2, result.issues));
+              payload.issues.push(...prefixIssues(key, result.issues));
             }
             payload.value[outKey] = result.value;
           }
         }
       }
       let unrecognized;
-      for (const key2 in input2) {
-        if (!recordKeys.has(key2)) {
+      for (const key in input2) {
+        if (!recordKeys.has(key)) {
           if (def.mode === "loose") {
-            if (key2 === "__proto__")
+            if (key === "__proto__")
               continue;
-            payload.value[key2] = input2[key2];
+            payload.value[key] = input2[key];
           } else {
             unrecognized = unrecognized ?? [];
-            unrecognized.push(key2);
+            unrecognized.push(key);
           }
         }
       }
@@ -7533,18 +7458,18 @@ var $ZodRecord = /* @__PURE__ */ $constructor("$ZodRecord", (inst, def) => {
     } else {
       payload.value = memo3 ? memo3.alloc(inst, payload, {}, ctx) : {};
       let unrecognized;
-      for (const key2 of Reflect.ownKeys(input2)) {
-        if (key2 === "__proto__")
+      for (const key of Reflect.ownKeys(input2)) {
+        if (key === "__proto__")
           continue;
-        if (!Object.prototype.propertyIsEnumerable.call(input2, key2))
+        if (!Object.prototype.propertyIsEnumerable.call(input2, key))
           continue;
-        let keyResult = def.keyType._zod.run({ value: key2, issues: [] }, ctx);
+        let keyResult = def.keyType._zod.run({ value: key, issues: [] }, ctx);
         if (keyResult instanceof Promise) {
           throw new Error("Async schemas not supported in object keys currently");
         }
-        const checkNumericKey = typeof key2 === "string" && number.test(key2) && keyResult.issues.length;
+        const checkNumericKey = typeof key === "string" && number.test(key) && keyResult.issues.length;
         if (checkNumericKey) {
-          const retryResult = def.keyType._zod.run({ value: Number(key2), issues: [] }, ctx);
+          const retryResult = def.keyType._zod.run({ value: Number(key), issues: [] }, ctx);
           if (retryResult instanceof Promise) {
             throw new Error("Async schemas not supported in object keys currently");
           }
@@ -7554,17 +7479,17 @@ var $ZodRecord = /* @__PURE__ */ $constructor("$ZodRecord", (inst, def) => {
         }
         if (keyResult.issues.length) {
           if (def.mode === "loose") {
-            payload.value[key2] = input2[key2];
+            payload.value[key] = input2[key];
           } else if (values) {
             unrecognized = unrecognized ?? [];
-            unrecognized.push(key2);
+            unrecognized.push(key);
           } else {
             payload.issues.push({
               code: "invalid_key",
               origin: "record",
               issues: keyResult.issues.map((iss) => finalizeIssue(iss, ctx, config())),
-              input: key2,
-              path: [key2],
+              input: key,
+              path: [key],
               inst
             });
           }
@@ -7573,17 +7498,17 @@ var $ZodRecord = /* @__PURE__ */ $constructor("$ZodRecord", (inst, def) => {
         const outKey = keyResult.value;
         if (outKey === "__proto__")
           continue;
-        const result = def.valueType._zod.run({ value: input2[key2], issues: [] }, ctx);
+        const result = def.valueType._zod.run({ value: input2[key], issues: [] }, ctx);
         if (result instanceof Promise) {
           proms.push(result.then((result2) => {
             if (result2.issues.length) {
-              payload.issues.push(...prefixIssues(key2, result2.issues));
+              payload.issues.push(...prefixIssues(key, result2.issues));
             }
             payload.value[outKey] = result2.value;
           }));
         } else {
           if (result.issues.length) {
-            payload.issues.push(...prefixIssues(key2, result.issues));
+            payload.issues.push(...prefixIssues(key, result.issues));
           }
           payload.value[outKey] = result.value;
         }
@@ -7623,20 +7548,20 @@ var $ZodMap = /* @__PURE__ */ $constructor("$ZodMap", (inst, def) => {
     payload.value = memo3 ? memo3.alloc(inst, payload, /* @__PURE__ */ new Map(), ctx) : /* @__PURE__ */ new Map();
     const abortEarly = ctx?.abortEarly;
     let seen = payload.issues.length;
-    for (const [key2, value] of input2) {
+    for (const [key, value] of input2) {
       if (abortEarly && payload.issues.length !== seen) {
         if (aborted(payload, seen))
           break;
         seen = payload.issues.length;
       }
-      const keyResult = def.keyType._zod.run({ value: key2, issues: [] }, ctx);
+      const keyResult = def.keyType._zod.run({ value: key, issues: [] }, ctx);
       const valueResult = def.valueType._zod.run({ value, issues: [] }, ctx);
       if (keyResult instanceof Promise || valueResult instanceof Promise) {
         proms.push(Promise.all([keyResult, valueResult]).then(([keyResult2, valueResult2]) => {
-          handleMapResult(keyResult2, valueResult2, payload, key2, input2, inst, ctx);
+          handleMapResult(keyResult2, valueResult2, payload, key, input2, inst, ctx);
         }));
       } else {
-        handleMapResult(keyResult, valueResult, payload, key2, input2, inst, ctx);
+        handleMapResult(keyResult, valueResult, payload, key, input2, inst, ctx);
       }
     }
     if (proms.length)
@@ -7645,10 +7570,10 @@ var $ZodMap = /* @__PURE__ */ $constructor("$ZodMap", (inst, def) => {
   };
   capSize(inst, mapSize);
 });
-function handleMapResult(keyResult, valueResult, final, key2, input2, inst, ctx) {
+function handleMapResult(keyResult, valueResult, final, key, input2, inst, ctx) {
   if (keyResult.issues.length) {
-    if (propertyKeyTypes.has(typeof key2)) {
-      final.issues.push(...prefixIssues(key2, keyResult.issues));
+    if (propertyKeyTypes.has(typeof key)) {
+      final.issues.push(...prefixIssues(key, keyResult.issues));
     } else {
       final.issues.push({
         code: "invalid_key",
@@ -7660,15 +7585,15 @@ function handleMapResult(keyResult, valueResult, final, key2, input2, inst, ctx)
     }
   }
   if (valueResult.issues.length) {
-    if (propertyKeyTypes.has(typeof key2)) {
-      final.issues.push(...prefixIssues(key2, valueResult.issues));
+    if (propertyKeyTypes.has(typeof key)) {
+      final.issues.push(...prefixIssues(key, valueResult.issues));
     } else {
       final.issues.push({
         origin: "map",
         code: "invalid_element",
         input: input2,
         inst,
-        key: key2,
+        key,
         issues: valueResult.issues.map((iss) => finalizeIssue(iss, ctx, config()))
       });
     }
@@ -8343,8 +8268,8 @@ function isRecursive(inst, stack, resolve) {
   };
   const shape = (sh, spread) => {
     let answer = NONE;
-    for (const key2 of Reflect.ownKeys(sh)) {
-      const desc = Object.getOwnPropertyDescriptor(sh, key2);
+    for (const key of Reflect.ownKeys(sh)) {
+      const desc = Object.getOwnPropertyDescriptor(sh, key);
       if (spread && !desc.enumerable)
         continue;
       const child = desc.get ? ASSUMED : desc.value?._zod ? isRecursive(desc.value, stack, resolve) : NONE;
@@ -8440,8 +8365,8 @@ function isRecursive(inst, stack, resolve) {
       break;
     default: {
       kind;
-      for (const key2 in def) {
-        const desc = Object.getOwnPropertyDescriptor(def, key2);
+      for (const key in def) {
+        const desc = Object.getOwnPropertyDescriptor(def, key);
         if (!desc || desc.get)
           continue;
         const value = desc.value;
@@ -16574,11 +16499,11 @@ function generatePropertiesChecks(doc, ctx, def, accessor) {
   }
   doc.write(`if (${accessor} == null) return INVALID;`);
   const shape = def.shape;
-  for (const key2 of Reflect.ownKeys(shape)) {
-    const keyExpr = typeof key2 === "symbol" ? addConstant(ctx, key2) : esc(key2);
+  for (const key of Reflect.ownKeys(shape)) {
+    const keyExpr = typeof key === "symbol" ? addConstant(ctx, key) : esc(key);
     const inputVar = newVar(ctx);
     doc.write(`const ${inputVar} = ${accessor}[${keyExpr}];`);
-    compileChild(doc, ctx, shape[key2], inputVar, false);
+    compileChild(doc, ctx, shape[key], inputVar, false);
   }
 }
 function generatePropertyCheck(doc, ctx, def, accessor) {
@@ -16971,9 +16896,9 @@ function generateObjectCheck(doc, ctx, schema, accessor, buildsValue = true) {
     throw new ZodCompileUnsupportedError('object shape key "__proto__"');
   }
   const propOutputs = /* @__PURE__ */ new Map();
-  for (const key2 of allKeys) {
-    const propSchema = propShape[key2];
-    const kx = keyExpr(key2);
+  for (const key of allKeys) {
+    const propSchema = propShape[key];
+    const kx = keyExpr(key);
     const inputVar = newVar(ctx);
     doc.write(`const ${inputVar} = ${accessor}[${kx}];`);
     if (propSchema._zod.optin !== void 0) {
@@ -16994,14 +16919,14 @@ function generateObjectCheck(doc, ctx, schema, accessor, buildsValue = true) {
       } else {
         doc.write(`if (${outputVar2} === INVALID) return INVALID;`);
       }
-      propOutputs.set(key2, outputVar2);
+      propOutputs.set(key, outputVar2);
     } else {
       if (requiresPresenceCheck(propSchema)) {
         doc.write(`if (!(${kx} in ${accessor})) return INVALID;`);
       }
       const outputAccessor = compileChild(doc, ctx, propSchema, inputVar, buildsValue);
       if (outputAccessor !== null)
-        propOutputs.set(key2, outputAccessor);
+        propOutputs.set(key, outputAccessor);
     }
   }
   const catchall = def.catchall;
@@ -17422,9 +17347,9 @@ function generateTupleCheck(doc, ctx, schema, accessor) {
   }
   return outputVar;
 }
-function getTupleOptStart2(items, key2) {
+function getTupleOptStart2(items, key) {
   for (let i = items.length - 1; i >= 0; i--) {
-    const omittable = key2 === "optin" ? items[i]._zod.optin !== void 0 : items[i]._zod.optout === "optional";
+    const omittable = key === "optin" ? items[i]._zod.optin !== void 0 : items[i]._zod.optout === "optional";
     if (!omittable)
       return i + 1;
   }
@@ -17554,16 +17479,16 @@ function generateRecordCheck(doc, ctx, schema, accessor) {
   const keyValues = recordDef.partial ? void 0 : def.keyType._zod.values;
   if (keyValues) {
     const inputKeys = [];
-    for (const key2 of keyValues) {
-      if (!(typeof key2 === "string" || typeof key2 === "number" || typeof key2 === "symbol")) {
-        throw new ZodCompileUnsupportedError(`record key value ${String(key2)}`);
+    for (const key of keyValues) {
+      if (!(typeof key === "string" || typeof key === "number" || typeof key === "symbol")) {
+        throw new ZodCompileUnsupportedError(`record key value ${String(key)}`);
       }
-      const inputKey = typeof key2 === "number" ? key2.toString() : key2;
+      const inputKey = typeof key === "number" ? key.toString() : key;
       if (inputKey === "__proto__") {
         throw new ZodCompileUnsupportedError('record key "__proto__"');
       }
       inputKeys.push(inputKey);
-      const keyConst = addConstant(ctx, key2);
+      const keyConst = addConstant(ctx, key);
       const outKey = generateCheck(doc, ctx, def.keyType, keyConst);
       const valueVar = newVar(ctx);
       doc.write(`const ${valueVar} = ${accessor}[${literalPropertyKey(ctx, inputKey)}];`);
@@ -17641,10 +17566,10 @@ function emitOwnKeys(doc, ctx, accessor, kVar, body, onSymbol) {
   });
   doc.write(`}`);
 }
-function literalPropertyKey(ctx, key2) {
-  if (typeof key2 === "string")
-    return esc(key2);
-  return addConstant(ctx, key2);
+function literalPropertyKey(ctx, key) {
+  if (typeof key === "string")
+    return esc(key);
+  return addConstant(ctx, key);
 }
 function generateMapCheck(doc, ctx, schema, accessor) {
   const def = schema._zod.def;
@@ -18873,9 +18798,9 @@ function _stringFormat(Class2, format, fnOrRegex, _params = {}) {
 // node_modules/zod/v4/core/to-json-schema.js
 function assignProps(target, ...sources) {
   for (const source of sources) {
-    for (const key2 of Reflect.ownKeys(source)) {
-      if (Object.prototype.propertyIsEnumerable.call(source, key2)) {
-        assignProp(target, key2, source[key2]);
+    for (const key of Reflect.ownKeys(source)) {
+      if (Object.prototype.propertyIsEnumerable.call(source, key)) {
+        assignProp(target, key, source[key]);
       }
     }
   }
@@ -19021,8 +18946,8 @@ function extractDefs(ctx, schema) {
     if (defId)
       seen.defId = defId;
     const schema2 = seen.schema;
-    for (const key2 in schema2) {
-      delete schema2[key2];
+    for (const key in schema2) {
+      delete schema2[key];
     }
     schema2.$ref = ref;
   };
@@ -19103,8 +19028,8 @@ function foldObjects(members2) {
   for (const member of members2) {
     if (typeof member !== "object" || member.type !== "object")
       return null;
-    for (const key2 in member) {
-      if (!FOLDABLE_KEYS.has(key2))
+    for (const key in member) {
+      if (!FOLDABLE_KEYS.has(key))
         return null;
     }
     objects.push(member);
@@ -19112,22 +19037,22 @@ function foldObjects(members2) {
   const properties = {};
   const required2 = /* @__PURE__ */ new Set();
   for (const object2 of objects) {
-    for (const key2 in object2.properties) {
-      if (Object.prototype.hasOwnProperty.call(properties, key2))
+    for (const key in object2.properties) {
+      if (Object.prototype.hasOwnProperty.call(properties, key))
         continue;
       const parts = [];
       for (const other of objects) {
-        const part = other.properties?.[key2] ?? undeclaredConstraint(other);
+        const part = other.properties?.[key] ?? undeclaredConstraint(other);
         if (part === null || part === void 0)
           continue;
         if (!parts.some((seen) => JSON.stringify(seen) === JSON.stringify(part)))
           parts.push(part);
       }
       const merged = parts.length === 1 ? parts[0] : foldObjects(parts) ?? { allOf: parts };
-      assignProp(properties, key2, merged);
+      assignProp(properties, key, merged);
     }
-    for (const key2 of object2.required ?? [])
-      required2.add(key2);
+    for (const key of object2.required ?? [])
+      required2.add(key);
   }
   const folded = { type: "object", properties };
   if (required2.size)
@@ -19152,8 +19077,8 @@ function foldIntersection(json2) {
   const allOf = json2.allOf;
   if (!Array.isArray(allOf) || allOf.length < 2)
     return;
-  for (const key2 of FOLDABLE_KEYS)
-    if (key2 in json2)
+  for (const key of FOLDABLE_KEYS)
+    if (key in json2)
       return;
   const unions = allOf.filter((m) => UNION_KEYS.some((k) => Array.isArray(m[k])));
   let folded = null;
@@ -19200,20 +19125,20 @@ function finalize(ctx, schema) {
       assignProps(schema2, _cached);
       const isParentRef = zodSchema._zod.parent === ref;
       if (isParentRef) {
-        for (const key2 in schema2) {
-          if (key2 === "$ref" || key2 === "allOf")
+        for (const key in schema2) {
+          if (key === "$ref" || key === "allOf")
             continue;
-          if (!(key2 in _cached)) {
-            delete schema2[key2];
+          if (!(key in _cached)) {
+            delete schema2[key];
           }
         }
       }
       if (refSchema.$ref && refSeen.def) {
-        for (const key2 in schema2) {
-          if (key2 === "$ref" || key2 === "allOf")
+        for (const key in schema2) {
+          if (key === "$ref" || key === "allOf")
             continue;
-          if (key2 in refSeen.def && JSON.stringify(schema2[key2]) === JSON.stringify(refSeen.def[key2])) {
-            delete schema2[key2];
+          if (key in refSeen.def && JSON.stringify(schema2[key]) === JSON.stringify(refSeen.def[key])) {
+            delete schema2[key];
           }
         }
       }
@@ -19225,11 +19150,11 @@ function finalize(ctx, schema) {
       if (parentSeen?.schema.$ref) {
         schema2.$ref = parentSeen.schema.$ref;
         if (parentSeen.def) {
-          for (const key2 in schema2) {
-            if (key2 === "$ref" || key2 === "allOf")
+          for (const key in schema2) {
+            if (key === "$ref" || key === "allOf")
               continue;
-            if (key2 in parentSeen.def && JSON.stringify(schema2[key2]) === JSON.stringify(parentSeen.def[key2])) {
-              delete schema2[key2];
+            if (key in parentSeen.def && JSON.stringify(schema2[key]) === JSON.stringify(parentSeen.def[key])) {
+              delete schema2[key];
             }
           }
         }
@@ -19362,8 +19287,8 @@ function isTransforming(_schema, _ctx) {
     return isTransforming(def.in, ctx) || isTransforming(def.out, ctx);
   }
   if (def.type === "object") {
-    for (const key2 in def.shape) {
-      if (isTransforming(def.shape[key2], ctx))
+    for (const key in def.shape) {
+      if (isTransforming(def.shape[key], ctx))
         return true;
     }
     return false;
@@ -19401,13 +19326,13 @@ var createStandardJSONSchemaMethod = (schema, io, processors = {}) => (params) =
 };
 
 // node_modules/zod/v4/core/json-schema-processors.js
-var narrowMin = (agg, key2, value) => {
-  if (agg[key2] === void 0 || value > agg[key2])
-    agg[key2] = value;
+var narrowMin = (agg, key, value) => {
+  if (agg[key] === void 0 || value > agg[key])
+    agg[key] = value;
 };
-var narrowMax = (agg, key2, value) => {
-  if (agg[key2] === void 0 || value < agg[key2])
-    agg[key2] = value;
+var narrowMax = (agg, key, value) => {
+  if (agg[key] === void 0 || value < agg[key])
+    agg[key] = value;
 };
 var narrowBoth = (agg, value) => {
   narrowMin(agg, "minimum", value);
@@ -19745,17 +19670,17 @@ var objectProcessor = (schema, ctx, _json, params) => {
   }
   json2.type = "object";
   json2.properties = {};
-  for (const key2 in shape) {
-    assignProp(json2.properties, key2, processSchema(shape[key2], ctx, {
+  for (const key in shape) {
+    assignProp(json2.properties, key, processSchema(shape[key], ctx, {
       ...params,
-      path: [...params.path, "properties", key2]
+      path: [...params.path, "properties", key]
     }));
   }
   const requiredKeys = [];
-  for (const key2 of Object.keys(shape)) {
-    const field = def.shape[key2];
+  for (const key of Object.keys(shape)) {
+    const field = def.shape[key];
     if (ctx.io === "input" ? inputOptin(field) === void 0 : field._zod.optout === void 0) {
-      requiredKeys.push(key2);
+      requiredKeys.push(key);
     }
   }
   if (requiredKeys.length > 0) {
@@ -20130,9 +20055,9 @@ function toJSONSchema(input2, params) {
     };
     ctx2.external = external;
     for (const entry of registry2._idmap.entries()) {
-      const [key2, schema] = entry;
+      const [key, schema] = entry;
       extractDefs(ctx2, schema);
-      assignProp(schemas, key2, finalize(ctx2, schema));
+      assignProp(schemas, key, finalize(ctx2, schema));
     }
     if (Object.keys(defs).length > 0) {
       const defsSegment = ctx2.target === "draft-2020-12" ? "$defs" : "definitions";
@@ -20447,17 +20372,17 @@ __export(checks_exports2, {
 
 // node_modules/zod/v4/classic/errors.js
 var _installedErrorProtos = /* @__PURE__ */ new WeakSet([Object.prototype, Error.prototype]);
-function _lazyMethod(proto, key2, make) {
-  Object.defineProperty(proto, key2, {
+function _lazyMethod(proto, key, make) {
+  Object.defineProperty(proto, key, {
     configurable: true,
     enumerable: false,
     get() {
       const value = make(this);
-      Object.defineProperty(this, key2, { value, configurable: true, writable: true });
+      Object.defineProperty(this, key, { value, configurable: true, writable: true });
       return value;
     },
     set(value) {
-      Object.defineProperty(this, key2, { value, configurable: true, writable: true });
+      Object.defineProperty(this, key, { value, configurable: true, writable: true });
     }
   });
 }
@@ -22127,11 +22052,11 @@ function resolveRef(ref, ctx) {
   }
   const defsKey = ctx.version === "draft-2020-12" ? "$defs" : "definitions";
   if (path[0] === defsKey) {
-    const key2 = path[1] === void 0 ? void 0 : decodeJSONPointerSegment(path[1]);
-    if (!key2 || !ctx.defs[key2]) {
+    const key = path[1] === void 0 ? void 0 : decodeJSONPointerSegment(path[1]);
+    if (!key || !ctx.defs[key]) {
       throw new Error(`Reference not found: ${ref}`);
     }
-    return ctx.defs[key2];
+    return ctx.defs[key];
   }
   throw new Error(`Reference not found: ${ref}`);
 }
@@ -22166,16 +22091,16 @@ function checkObjectGuards(objectSchema, guards) {
       });
     }
     if (guards.keySchema) {
-      for (const key2 of keys) {
-        const result = guards.keySchema.safeParse(key2);
+      for (const key of keys) {
+        const result = guards.keySchema.safeParse(key);
         if (result.success)
           continue;
         payload.issues.push({
           code: "invalid_key",
           origin: "record",
           issues: result.error.issues,
-          input: key2,
-          path: [key2],
+          input: key,
+          path: [key],
           continue: true
         });
       }
@@ -22200,20 +22125,20 @@ function canonicalKey(value, seen) {
     if (Array.isArray(value)) {
       const parts2 = [];
       for (const item of value) {
-        const key2 = canonicalKey(item, seen);
-        if (key2 === null)
+        const key = canonicalKey(item, seen);
+        if (key === null)
           return null;
-        parts2.push(key2);
+        parts2.push(key);
       }
       return `a${parts2.length}:[${parts2.join(",")}]`;
     }
     const keys = Object.keys(value).sort();
     const parts = [];
     for (const k of keys) {
-      const key2 = canonicalKey(value[k], seen);
-      if (key2 === null)
+      const key = canonicalKey(value[k], seen);
+      if (key === null)
         return null;
-      parts.push(`${k.length}:${k}=${key2}`);
+      parts.push(`${k.length}:${k}=${key}`);
     }
     return `o${parts.length}:{${parts.join(",")}}`;
   } finally {
@@ -22253,10 +22178,10 @@ function containsRef(value) {
     return value.some(containsRef);
   if (typeof value.$ref === "string")
     return true;
-  return Object.entries(value).some(([key2, sub]) => {
-    if (SCHEMA_KEYWORDS.has(key2))
+  return Object.entries(value).some(([key, sub]) => {
+    if (SCHEMA_KEYWORDS.has(key))
       return containsRef(sub);
-    if (!SCHEMA_MAP_KEYWORDS.has(key2) || typeof sub !== "object" || sub === null)
+    if (!SCHEMA_MAP_KEYWORDS.has(key) || typeof sub !== "object" || sub === null)
       return false;
     return Object.values(sub).some(containsRef);
   });
@@ -22272,12 +22197,12 @@ function checkArrayGuards(arraySchema, guards) {
     if (guards.uniqueItems === true) {
       const firstSeen = /* @__PURE__ */ new Map();
       for (let i = 0; i < items.length; i++) {
-        const key2 = canonicalKey(items[i], /* @__PURE__ */ new Set());
-        if (key2 === null)
+        const key = canonicalKey(items[i], /* @__PURE__ */ new Set());
+        if (key === null)
           continue;
-        const first = firstSeen.get(key2);
+        const first = firstSeen.get(key);
         if (first === void 0) {
-          firstSeen.set(key2, i);
+          firstSeen.set(key, i);
           continue;
         }
         payload.issues.push({
@@ -22516,9 +22441,9 @@ function convertBaseSchema(schema, ctx) {
       const properties = schema.properties || {};
       const requiredSet = new Set(schema.required || []);
       const additionalSchema = typeof schema.additionalProperties === "object" ? convertSchema(schema.additionalProperties, ctx) : void 0;
-      for (const [key2, propSchema] of Object.entries(properties)) {
+      for (const [key, propSchema] of Object.entries(properties)) {
         const propZodSchema = convertSchema(propSchema, ctx);
-        assignProp(shape, key2, requiredSet.has(key2) ? propZodSchema : propZodSchema.optional());
+        assignProp(shape, key, requiredSet.has(key) ? propZodSchema : propZodSchema.optional());
       }
       if (schema.patternProperties) {
         const patternProps = schema.patternProperties;
@@ -22553,12 +22478,12 @@ function convertBaseSchema(schema, ctx) {
             if (!isPlainObject(payload.value))
               return;
             const unrecognized = [];
-            for (const key2 of Object.keys(payload.value)) {
-              if (propertyKeys.includes(key2))
+            for (const key of Object.keys(payload.value)) {
+              if (propertyKeys.includes(key))
                 continue;
-              if (patterns.some((regex) => regex.test(key2)))
+              if (patterns.some((regex) => regex.test(key)))
                 continue;
-              unrecognized.push(key2);
+              unrecognized.push(key);
             }
             if (unrecognized.length) {
               payload.issues.push({
@@ -22689,38 +22614,38 @@ function convertSchema(schema, ctx) {
   }
   const extraMeta = {};
   const coreMetadataKeys = ["$id", "id", "$comment", "$anchor", "$vocabulary", "$dynamicRef", "$dynamicAnchor"];
-  for (const key2 of coreMetadataKeys) {
-    if (key2 in schema) {
-      extraMeta[key2] = schema[key2];
+  for (const key of coreMetadataKeys) {
+    if (key in schema) {
+      extraMeta[key] = schema[key];
     }
   }
   const contentMetadataKeys = ["contentEncoding", "contentMediaType", "contentSchema"];
-  for (const key2 of contentMetadataKeys) {
-    if (key2 in schema) {
-      extraMeta[key2] = schema[key2];
+  for (const key of contentMetadataKeys) {
+    if (key in schema) {
+      extraMeta[key] = schema[key];
     }
   }
   if (schema.type === "object" && schema.$ref === void 0) {
     if (schema.propertyNames !== void 0 && !containsRef(schema.propertyNames)) {
       extraMeta.propertyNames = schema.propertyNames;
     }
-    for (const key2 of ["minProperties", "maxProperties"]) {
-      if (schema[key2] !== void 0)
-        extraMeta[key2] = schema[key2];
+    for (const key of ["minProperties", "maxProperties"]) {
+      if (schema[key] !== void 0)
+        extraMeta[key] = schema[key];
     }
   }
   if (schema.type === "array" && schema.$ref === void 0) {
     if (schema.contains !== void 0 && !containsRef(schema.contains)) {
       extraMeta.contains = schema.contains;
     }
-    for (const key2 of ["uniqueItems", "minContains", "maxContains"]) {
-      if (schema[key2] !== void 0)
-        extraMeta[key2] = schema[key2];
+    for (const key of ["uniqueItems", "minContains", "maxContains"]) {
+      if (schema[key] !== void 0)
+        extraMeta[key] = schema[key];
     }
   }
-  for (const key2 of Object.keys(schema)) {
-    if (!RECOGNIZED_KEYS.has(key2)) {
-      assignProp(extraMeta, key2, schema[key2]);
+  for (const key of Object.keys(schema)) {
+    if (!RECOGNIZED_KEYS.has(key)) {
+      assignProp(extraMeta, key, schema[key]);
     }
   }
   if (Object.keys(extraMeta).length > 0) {
@@ -22762,7 +22687,7 @@ function visit(schema, fnOrHandlers) {
     return h ? h(node2, rewritten) : node2;
   };
   const cache2 = /* @__PURE__ */ new Map();
-  function run(s) {
+  function run2(s) {
     const cached2 = cache2.get(s);
     if (cached2 === RESOLVING) {
       return new $ZodLazy({
@@ -22788,21 +22713,21 @@ function visit(schema, fnOrHandlers) {
         let changed2 = false;
         const newShape = {};
         for (const k of keys) {
-          const mapped = run(oldShape[k]);
+          const mapped = run2(oldShape[k]);
           if (mapped !== oldShape[k])
             changed2 = true;
           newShape[k] = mapped;
         }
         let newCatchall = def.catchall;
         if (def.catchall) {
-          newCatchall = run(def.catchall);
+          newCatchall = run2(def.catchall);
           if (newCatchall !== def.catchall)
             changed2 = true;
         }
         return changed2 ? clone(s, { ...def, shape: newShape, catchall: newCatchall }) : s;
       }
       case "array": {
-        const mapped = run(def.element);
+        const mapped = run2(def.element);
         return mapped === def.element ? s : clone(s, { ...def, element: mapped });
       }
       case "tuple": {
@@ -22810,14 +22735,14 @@ function visit(schema, fnOrHandlers) {
         let changed2 = false;
         const newItems = [];
         for (const item of oldItems) {
-          const mapped = run(item);
+          const mapped = run2(item);
           if (mapped !== item)
             changed2 = true;
           newItems.push(mapped);
         }
         let newRest = def.rest;
         if (def.rest) {
-          newRest = run(def.rest);
+          newRest = run2(def.rest);
           if (newRest !== def.rest)
             changed2 = true;
         }
@@ -22825,12 +22750,12 @@ function visit(schema, fnOrHandlers) {
       }
       case "record":
       case "map": {
-        const newKey = run(def.keyType);
-        const newVal = run(def.valueType);
+        const newKey = run2(def.keyType);
+        const newVal = run2(def.valueType);
         return newKey === def.keyType && newVal === def.valueType ? s : clone(s, { ...def, keyType: newKey, valueType: newVal });
       }
       case "set": {
-        const newVal = run(def.valueType);
+        const newVal = run2(def.valueType);
         return newVal === def.valueType ? s : clone(s, { ...def, valueType: newVal });
       }
       case "union": {
@@ -22838,7 +22763,7 @@ function visit(schema, fnOrHandlers) {
         let changed2 = false;
         const newOptions = [];
         for (const opt of oldOptions) {
-          const mapped = run(opt);
+          const mapped = run2(opt);
           if (mapped !== opt)
             changed2 = true;
           newOptions.push(mapped);
@@ -22846,8 +22771,8 @@ function visit(schema, fnOrHandlers) {
         return changed2 ? clone(s, { ...def, options: newOptions }) : s;
       }
       case "intersection": {
-        const newLeft = run(def.left);
-        const newRight = run(def.right);
+        const newLeft = run2(def.left);
+        const newRight = run2(def.right);
         return newLeft === def.left && newRight === def.right ? s : clone(s, { ...def, left: newLeft, right: newRight });
       }
       case "optional":
@@ -22859,23 +22784,23 @@ function visit(schema, fnOrHandlers) {
       case "nonoptional":
       case "promise":
       case "success": {
-        const newInner = run(def.innerType);
+        const newInner = run2(def.innerType);
         return newInner === def.innerType ? s : clone(s, { ...def, innerType: newInner });
       }
       case "pipe": {
-        const newIn = run(def.in);
-        const newOut = run(def.out);
+        const newIn = run2(def.in);
+        const newOut = run2(def.out);
         return newIn === def.in && newOut === def.out ? s : clone(s, { ...def, in: newIn, out: newOut });
       }
       case "function": {
-        const newInput = run(def.input);
-        const newOutput = run(def.output);
+        const newInput = run2(def.input);
+        const newOutput = run2(def.output);
         return newInput === def.input && newOutput === def.output ? s : clone(s, { ...def, input: newInput, output: newOutput });
       }
       case "lazy": {
         const original = def.getter;
         const { _cachedInner, ...rest } = def;
-        return clone(s, { ...rest, getter: () => run(original()) });
+        return clone(s, { ...rest, getter: () => run2(original()) });
       }
       // A leaf by choice: `parts` are regex fragments, not data positions.
       case "template_literal":
@@ -22906,7 +22831,7 @@ function visit(schema, fnOrHandlers) {
       }
     }
   }
-  return run(schema);
+  return run2(schema);
 }
 
 // node_modules/zod/v4/classic/deep-partial.js
@@ -24138,7 +24063,7 @@ var TOOL_RESULT_FOREIGN_FAMILY_KEYS = [
   "requestState"
 ];
 function normalizeContentlessToolResult(value) {
-  if (value === null || typeof value !== "object" || Array.isArray(value) || value.content !== void 0 || TOOL_RESULT_FOREIGN_FAMILY_KEYS.some((key2) => key2 in value)) return value;
+  if (value === null || typeof value !== "object" || Array.isArray(value) || value.content !== void 0 || TOOL_RESULT_FOREIGN_FAMILY_KEYS.some((key) => key in value)) return value;
   return {
     ...value,
     content: []
@@ -25008,10 +24933,10 @@ function build$1() {
     ]),
     CallToolResultWireSchema: unknown().superRefine((value, ctx) => {
       if (typeof value !== "object" || value === null || Array.isArray(value) || value.content !== void 0) return;
-      for (const key2 of TOOL_RESULT_FOREIGN_FAMILY_KEYS) if (key2 in value) {
+      for (const key of TOOL_RESULT_FOREIGN_FAMILY_KEYS) if (key in value) {
         ctx.addIssue({
           code: "custom",
-          message: `content is required when the body carries '${key2}' \u2014 another result family cannot default into an empty tools/call success`
+          message: `content is required when the body carries '${key}' \u2014 another result family cannot default into an empty tools/call success`
         });
         return;
       }
@@ -26549,17 +26474,17 @@ var rev2026Codec = {
   },
   validateEnvelopeMeta(meta3) {
     const issues = [];
-    for (const key2 of REQUIRED_ENVELOPE_KEYS) if (!(key2 in meta3)) issues.push({
-      key: key2,
+    for (const key of REQUIRED_ENVELOPE_KEYS) if (!(key in meta3)) issues.push({
+      key,
       problem: "missing"
     });
     const parsed = buildSchemas2026().RequestMetaEnvelopeSchema.safeParse(meta3);
     if (!parsed.success) for (const issue3 of parsed.error.issues) {
       const path = issue3.path.map(String);
-      const key2 = path.length > 0 ? path.join(".") : "_meta";
-      if (path.length === 1 && issues.some((existing) => existing.key === key2 && existing.problem === "missing")) continue;
+      const key = path.length > 0 ? path.join(".") : "_meta";
+      if (path.length === 1 && issues.some((existing) => existing.key === key && existing.problem === "missing")) continue;
       issues.push({
-        key: key2,
+        key,
         problem: issue3.message
       });
     }
@@ -26909,8 +26834,8 @@ function scanXMcpHeaderDeclarations(inputSchema) {
       });
     }
     const properties = schema.properties;
-    if (properties !== null && typeof properties === "object") for (const [key2, child] of Object.entries(properties)) {
-      const fault$1 = visit2(child, [...path, key2], reachable);
+    if (properties !== null && typeof properties === "object") for (const [key, child] of Object.entries(properties)) {
+      const fault$1 = visit2(child, [...path, key], reachable);
       if (fault$1 !== void 0) return fault$1;
     }
     for (const k of NON_REACHABLE_SUBSCHEMA_KEYWORDS) {
@@ -27140,12 +27065,12 @@ function isProvablyObjectShapedRoot(schema, root = schema) {
   if ("properties" in schema || "patternProperties" in schema || "additionalProperties" in schema || "required" in schema) return true;
   const ref = typeof schema.$ref === "string" && LOCAL_DEFINITION_REF.exec(schema.$ref);
   if (ref && root[ref[1]]?.[ref[2]]?.type === "object") return true;
-  for (const key2 of [
+  for (const key of [
     "oneOf",
     "anyOf",
     "allOf"
   ]) {
-    const members2 = schema[key2];
+    const members2 = schema[key];
     if (Array.isArray(members2) && members2.length > 0) return members2.every((m) => m !== null && typeof m === "object" && (m.type === "object" || isProvablyObjectShapedRoot(m, "$id" in m ? {} : root)));
   }
   return false;
@@ -27239,8 +27164,8 @@ var ANNOTATION_ONLY_JSON_SCHEMA_KEYWORDS = /* @__PURE__ */ new Set([
   "title",
   "writeOnly"
 ]);
-function isAnnotationOnlyJsonSchemaKeyword(key2) {
-  return ANNOTATION_ONLY_JSON_SCHEMA_KEYWORDS.has(key2) || key2.startsWith("x-");
+function isAnnotationOnlyJsonSchemaKeyword(key) {
+  return ANNOTATION_ONLY_JSON_SCHEMA_KEYWORDS.has(key) || key.startsWith("x-");
 }
 var ROOT_KEYS = /* @__PURE__ */ new Set(["$schema", ...Object.keys(ElicitRequestFormParamsSchema.shape.requestedSchema.shape)]);
 var PROPERTY_KEYS_BY_TYPE = {
@@ -27261,19 +27186,19 @@ function walkProperty(node2, path, vendor, unsupported) {
   const allowedKeys = typeof node2.type === "string" && Object.hasOwn(PROPERTY_KEYS_BY_TYPE, node2.type) ? PROPERTY_KEYS_BY_TYPE[node2.type] : void 0;
   if (allowedKeys === void 0) return node2;
   const pruned = {};
-  for (const [key2, value] of Object.entries(node2)) if (allowedKeys.has(key2) || isAnnotationOnlyJsonSchemaKeyword(key2)) pruned[key2] = value;
-  else if (key2 === "pattern" && node2.type === "string" && typeof node2.format === "string") {
-    if (!SUPPORTED_STRING_FORMATS.has(node2.format)) pruned[key2] = value;
-    else if (typeof value !== "string" || !isLibraryFormatPattern(node2.format, value, vendor)) unsupported.push(`${path}.${key2}`);
-  } else unsupported.push(`${path}.${key2}`);
+  for (const [key, value] of Object.entries(node2)) if (allowedKeys.has(key) || isAnnotationOnlyJsonSchemaKeyword(key)) pruned[key] = value;
+  else if (key === "pattern" && node2.type === "string" && typeof node2.format === "string") {
+    if (!SUPPORTED_STRING_FORMATS.has(node2.format)) pruned[key] = value;
+    else if (typeof value !== "string" || !isLibraryFormatPattern(node2.format, value, vendor)) unsupported.push(`${path}.${key}`);
+  } else unsupported.push(`${path}.${key}`);
   return pruned;
 }
 function walkRequestedSchema(converted, vendor) {
   const pruned = {};
   const unsupported = [];
-  for (const [key2, value] of Object.entries(converted)) if (key2 === "properties" && isJsonObject(value)) pruned[key2] = Object.fromEntries(Object.entries(value).map(([name, node2]) => [name, walkProperty(node2, `properties.${name}`, vendor, unsupported)]));
-  else if (ROOT_KEYS.has(key2)) pruned[key2] = value;
-  else if (!isAnnotationOnlyJsonSchemaKeyword(key2)) unsupported.push(key2);
+  for (const [key, value] of Object.entries(converted)) if (key === "properties" && isJsonObject(value)) pruned[key] = Object.fromEntries(Object.entries(value).map(([name, node2]) => [name, walkProperty(node2, `properties.${name}`, vendor, unsupported)]));
+  else if (ROOT_KEYS.has(key)) pruned[key] = value;
+  else if (!isAnnotationOnlyJsonSchemaKeyword(key)) unsupported.push(key);
   if (unsupported.length > 0) throw new ProtocolError(ProtocolErrorCode.InvalidParams, `Elicitation requestedSchema contains unsupported JSON Schema constraint(s) after Standard Schema conversion: ${unsupported.join(", ")}`);
   return pruned;
 }
@@ -27285,10 +27210,10 @@ function describeUnsupportedProperties(pruned, fallback) {
 function findDroppedConstraintPaths(original, parsed, path = "") {
   if (Array.isArray(original) && Array.isArray(parsed)) return original.flatMap((item, index) => findDroppedConstraintPaths(item, parsed[index], `${path}[${index}]`));
   if (!isJsonObject(original) || !isJsonObject(parsed)) return [];
-  return Object.entries(original).flatMap(([key2, value]) => {
-    const childPath = path ? `${path}.${key2}` : key2;
-    if (!Object.prototype.hasOwnProperty.call(parsed, key2)) return isAnnotationOnlyJsonSchemaKeyword(key2) ? [] : [childPath];
-    return findDroppedConstraintPaths(value, parsed[key2], childPath);
+  return Object.entries(original).flatMap(([key, value]) => {
+    const childPath = path ? `${path}.${key}` : key;
+    if (!Object.prototype.hasOwnProperty.call(parsed, key)) return isAnnotationOnlyJsonSchemaKeyword(key) ? [] : [childPath];
+    return findDroppedConstraintPaths(value, parsed[key], childPath);
   });
 }
 function normalizeElicitInputParams(input2) {
@@ -27303,7 +27228,7 @@ function normalizeElicitInputParams(input2) {
   if (!parsed.success) throw new ProtocolError(ProtocolErrorCode.InvalidParams, `Elicitation requestedSchema only supports flat primitive properties (string, number, integer, boolean, and string enums): ${describeUnsupportedProperties(pruned, parsed.error.message)}`);
   const droppedConstraints = findDroppedConstraintPaths(pruned, parsed.data);
   if (droppedConstraints.length > 0) throw new ProtocolError(ProtocolErrorCode.InvalidParams, `Elicitation requestedSchema contains unsupported JSON Schema constraint(s) after Standard Schema conversion: ${droppedConstraints.join(", ")}`);
-  const danglingRequired = (parsed.data.required ?? []).filter((key2) => !Object.prototype.hasOwnProperty.call(parsed.data.properties, key2));
+  const danglingRequired = (parsed.data.required ?? []).filter((key) => !Object.prototype.hasOwnProperty.call(parsed.data.properties, key));
   if (danglingRequired.length > 0) throw new ProtocolError(ProtocolErrorCode.InvalidParams, `Elicitation requestedSchema lists required properties that are not defined in properties: ${danglingRequired.join(", ")}`);
   return {
     ...input2,
@@ -27562,13 +27487,13 @@ var authSchemas = {
 };
 var _specTypeSchemas = {};
 var _isSpecType = {};
-function register(key2, schema) {
-  const name = key2.slice(0, -6);
+function register(key, schema) {
+  const name = key.slice(0, -6);
   _specTypeSchemas[name] = schema;
   _isSpecType[name] = (v) => schema.safeParse(v).success;
 }
-for (const key2 of SPEC_SCHEMA_KEYS) register(key2, schemas_exports3[key2]);
-for (const [key2, schema] of Object.entries(authSchemas)) register(key2, schema);
+for (const key of SPEC_SCHEMA_KEYS) register(key, schemas_exports3[key]);
+for (const [key, schema] of Object.entries(authSchemas)) register(key, schema);
 var specTypeSchemas = Object.freeze(_specTypeSchemas);
 var isSpecType = Object.freeze(_isSpecType);
 function bootstrapOutboundCodec(method) {
@@ -27597,8 +27522,8 @@ function liftWireOnlyMaterial(message2, kind) {
     lifted: {}
   };
   const meta3 = params._meta;
-  const envelopeKeys = isPlainObject$1(meta3) ? RESERVED_ENVELOPE_META_KEYS.filter((key2) => key2 in meta3) : [];
-  const retryKeys = kind === "request" ? RETRY_PARAMS_KEYS.filter((key2) => key2 in params) : [];
+  const envelopeKeys = isPlainObject$1(meta3) ? RESERVED_ENVELOPE_META_KEYS.filter((key) => key in meta3) : [];
+  const retryKeys = kind === "request" ? RETRY_PARAMS_KEYS.filter((key) => key in params) : [];
   if (envelopeKeys.length === 0 && retryKeys.length === 0) return {
     message: message2,
     lifted: {}
@@ -27608,18 +27533,18 @@ function liftWireOnlyMaterial(message2, kind) {
   if (envelopeKeys.length > 0 && isPlainObject$1(meta3)) {
     const envelope = {};
     const nextMeta = { ...meta3 };
-    for (const key2 of envelopeKeys) {
-      envelope[key2] = meta3[key2];
-      delete nextMeta[key2];
+    for (const key of envelopeKeys) {
+      envelope[key] = meta3[key];
+      delete nextMeta[key];
     }
     lifted.envelope = envelope;
     if (Object.keys(nextMeta).length > 0) nextParams._meta = nextMeta;
     else delete nextParams._meta;
   }
-  for (const key2 of retryKeys) {
-    if (key2 === "inputResponses") lifted.inputResponses = nextParams[key2];
-    if (key2 === "requestState") lifted.requestState = nextParams[key2];
-    delete nextParams[key2];
+  for (const key of retryKeys) {
+    if (key === "inputResponses") lifted.inputResponses = nextParams[key];
+    if (key === "requestState") lifted.requestState = nextParams[key];
+    delete nextParams[key];
   }
   return {
     message: {
@@ -28400,8 +28325,8 @@ function isPlainObject$1(value) {
 }
 function mergeCapabilities(base, additional) {
   const result = { ...base };
-  for (const key2 in additional) {
-    const k = key2;
+  for (const key in additional) {
+    const k = key;
     const addValue = additional[k];
     if (addValue === void 0) continue;
     const baseValue = result[k];
@@ -28422,12 +28347,12 @@ function partitionInputResponses(inputResponses) {
     accepted,
     droppedKeys
   };
-  for (const [key2, entry] of Object.entries(inputResponses)) {
+  for (const [key, entry] of Object.entries(inputResponses)) {
     if (!isPlainObject2(entry) || "method" in entry || "result" in entry) {
-      droppedKeys.push(key2);
+      droppedKeys.push(key);
       continue;
     }
-    accepted[key2] = entry;
+    accepted[key] = entry;
   }
   return {
     accepted,
@@ -28456,20 +28381,20 @@ var require_content_type = /* @__PURE__ */ __commonJSMin(((exports) => {
     if (!TYPE_REGEXP.test(type)) throw new TypeError("invalid media type");
     var obj = new ContentType(type.toLowerCase());
     if (index !== -1) {
-      var key2;
+      var key;
       var match;
       var value;
       PARAM_REGEXP.lastIndex = index;
       while (match = PARAM_REGEXP.exec(header)) {
         if (match.index !== index) throw new TypeError("invalid parameter format");
         index += match[0].length;
-        key2 = match[1].toLowerCase();
+        key = match[1].toLowerCase();
         value = match[2];
         if (value.charCodeAt(0) === 34) {
           value = value.slice(1, -1);
           if (value.indexOf("\\") !== -1) value = value.replace(QESC_REGEXP, "$1");
         }
-        obj.parameters[key2] = value;
+        obj.parameters[key] = value;
       }
       if (index !== header.length) throw new TypeError("invalid parameter format");
     }
@@ -28711,13 +28636,13 @@ var require_code$1 = /* @__PURE__ */ __commonJSMin(((exports) => {
     return JSON.stringify(x).replace(/\u2028/g, "\\u2028").replace(/\u2029/g, "\\u2029");
   }
   exports.safeStringify = safeStringify;
-  function getProperty(key2) {
-    return typeof key2 == "string" && exports.IDENTIFIER.test(key2) ? new _Code(`.${key2}`) : _`[${key2}]`;
+  function getProperty(key) {
+    return typeof key == "string" && exports.IDENTIFIER.test(key) ? new _Code(`.${key}`) : _`[${key}]`;
   }
   exports.getProperty = getProperty;
-  function getEsmExportName(key2) {
-    if (typeof key2 == "string" && exports.IDENTIFIER.test(key2)) return new _Code(`${key2}`);
-    throw new Error(`CodeGen: invalid export name: ${key2}, use explicit $id name mapping`);
+  function getEsmExportName(key) {
+    if (typeof key == "string" && exports.IDENTIFIER.test(key)) return new _Code(`${key}`);
+    throw new Error(`CodeGen: invalid export name: ${key}, use explicit $id name mapping`);
   }
   exports.getEsmExportName = getEsmExportName;
   function regexpCode(rx) {
@@ -29328,10 +29253,10 @@ var require_codegen = /* @__PURE__ */ __commonJSMin(((exports) => {
     }
     object(...keyValues) {
       const code = ["{"];
-      for (const [key2, value] of keyValues) {
+      for (const [key, value] of keyValues) {
         if (code.length > 1) code.push(",");
-        code.push(key2);
-        if (key2 !== value || this.opts.es5) {
+        code.push(key);
+        if (key !== value || this.opts.es5) {
           code.push(":");
           (0, code_1.addCodeArg)(code, value);
         }
@@ -29553,18 +29478,18 @@ var require_util = /* @__PURE__ */ __commonJSMin(((exports) => {
     if (!opts.strictSchema) return;
     if (typeof schema === "boolean") return;
     const rules = self.RULES.keywords;
-    for (const key2 in schema) if (!rules[key2]) checkStrictMode(it, `unknown keyword: "${key2}"`);
+    for (const key in schema) if (!rules[key]) checkStrictMode(it, `unknown keyword: "${key}"`);
   }
   exports.checkUnknownRules = checkUnknownRules;
   function schemaHasRules(schema, rules) {
     if (typeof schema == "boolean") return !schema;
-    for (const key2 in schema) if (rules[key2]) return true;
+    for (const key in schema) if (rules[key]) return true;
     return false;
   }
   exports.schemaHasRules = schemaHasRules;
   function schemaHasRulesButRef(schema, RULES) {
     if (typeof schema == "boolean") return !schema;
-    for (const key2 in schema) if (key2 !== "$ref" && RULES.all[key2]) return true;
+    for (const key in schema) if (key !== "$ref" && RULES.all[key]) return true;
     return false;
   }
   exports.schemaHasRulesButRef = schemaHasRulesButRef;
@@ -30071,7 +29996,7 @@ var require_defaults = /* @__PURE__ */ __commonJSMin(((exports) => {
   const util_1 = require_util();
   function assignDefaults(it, ty) {
     const { properties, items } = it.schema;
-    if (ty === "object" && properties) for (const key2 in properties) assignDefault(it, key2, properties[key2].default);
+    if (ty === "object" && properties) for (const key in properties) assignDefault(it, key, properties[key].default);
     else if (ty === "array" && Array.isArray(items)) items.forEach((sch, i) => assignDefault(it, i, sch.default));
   }
   exports.assignDefaults = assignDefaults;
@@ -30397,8 +30322,8 @@ var require_fast_deep_equal = /* @__PURE__ */ __commonJSMin(((exports, module) =
       if (length !== Object.keys(b).length) return false;
       for (i = length; i-- !== 0; ) if (!Object.prototype.hasOwnProperty.call(b, keys[i])) return false;
       for (i = length; i-- !== 0; ) {
-        var key2 = keys[i];
-        if (!equal(a[key2], b[key2])) return false;
+        var key = keys[i];
+        if (!equal(a[key], b[key])) return false;
       }
       return true;
     }
@@ -30465,13 +30390,13 @@ var require_json_schema_traverse = /* @__PURE__ */ __commonJSMin(((exports, modu
   function _traverse(opts, pre, post, schema, jsonPtr, rootSchema, parentJsonPtr, parentKeyword, parentSchema, keyIndex) {
     if (schema && typeof schema == "object" && !Array.isArray(schema)) {
       pre(schema, jsonPtr, rootSchema, parentJsonPtr, parentKeyword, parentSchema, keyIndex);
-      for (var key2 in schema) {
-        var sch = schema[key2];
+      for (var key in schema) {
+        var sch = schema[key];
         if (Array.isArray(sch)) {
-          if (key2 in traverse.arrayKeywords) for (var i = 0; i < sch.length; i++) _traverse(opts, pre, post, sch[i], jsonPtr + "/" + key2 + "/" + i, rootSchema, jsonPtr, key2, schema, i);
-        } else if (key2 in traverse.propsKeywords) {
-          if (sch && typeof sch == "object") for (var prop in sch) _traverse(opts, pre, post, sch[prop], jsonPtr + "/" + key2 + "/" + escapeJsonPtr(prop), rootSchema, jsonPtr, key2, schema, prop);
-        } else if (key2 in traverse.keywords || opts.allKeys && !(key2 in traverse.skipKeywords)) _traverse(opts, pre, post, sch, jsonPtr + "/" + key2, rootSchema, jsonPtr, key2, schema);
+          if (key in traverse.arrayKeywords) for (var i = 0; i < sch.length; i++) _traverse(opts, pre, post, sch[i], jsonPtr + "/" + key + "/" + i, rootSchema, jsonPtr, key, schema, i);
+        } else if (key in traverse.propsKeywords) {
+          if (sch && typeof sch == "object") for (var prop in sch) _traverse(opts, pre, post, sch[prop], jsonPtr + "/" + key + "/" + escapeJsonPtr(prop), rootSchema, jsonPtr, key, schema, prop);
+        } else if (key in traverse.keywords || opts.allKeys && !(key in traverse.skipKeywords)) _traverse(opts, pre, post, sch, jsonPtr + "/" + key, rootSchema, jsonPtr, key, schema);
       }
       post(schema, jsonPtr, rootSchema, parentJsonPtr, parentKeyword, parentSchema, keyIndex);
     }
@@ -30519,9 +30444,9 @@ var require_resolve = /* @__PURE__ */ __commonJSMin(((exports) => {
     "$dynamicAnchor"
   ]);
   function hasRef(schema) {
-    for (const key2 in schema) {
-      if (REF_KEYWORDS.has(key2)) return true;
-      const sch = schema[key2];
+    for (const key in schema) {
+      if (REF_KEYWORDS.has(key)) return true;
+      const sch = schema[key];
       if (Array.isArray(sch) && sch.some(hasRef)) return true;
       if (typeof sch == "object" && hasRef(sch)) return true;
     }
@@ -30529,11 +30454,11 @@ var require_resolve = /* @__PURE__ */ __commonJSMin(((exports) => {
   }
   function countKeys(schema) {
     let count = 0;
-    for (const key2 in schema) {
-      if (key2 === "$ref") return Infinity;
+    for (const key in schema) {
+      if (key === "$ref") return Infinity;
       count++;
-      if (SIMPLE_INLINED.has(key2)) continue;
-      if (typeof schema[key2] == "object") (0, util_1.eachItem)(schema[key2], (sch) => count += countKeys(sch));
+      if (SIMPLE_INLINED.has(key)) continue;
+      if (typeof schema[key] == "object") (0, util_1.eachItem)(schema[key], (sch) => count += countKeys(sch));
       if (count === Infinity) return Infinity;
     }
     return count;
@@ -30691,7 +30616,7 @@ var require_validate = /* @__PURE__ */ __commonJSMin(((exports) => {
   }
   function schemaCxtHasRules({ schema, self }) {
     if (typeof schema == "boolean") return !schema;
-    for (const key2 in schema) if (self.RULES.all[key2]) return true;
+    for (const key in schema) if (self.RULES.all[key]) return true;
     return false;
   }
   function isSchemaObj(it) {
@@ -32424,7 +32349,7 @@ var require_core$3 = /* @__PURE__ */ __commonJSMin(((exports) => {
         }
       }
     }
-    addSchema(schema, key2, _meta, _validateSchema = this.opts.validateSchema) {
+    addSchema(schema, key, _meta, _validateSchema = this.opts.validateSchema) {
       if (Array.isArray(schema)) {
         for (const sch of schema) this.addSchema(sch, void 0, _meta, _validateSchema);
         return this;
@@ -32435,13 +32360,13 @@ var require_core$3 = /* @__PURE__ */ __commonJSMin(((exports) => {
         id2 = schema[schemaId];
         if (id2 !== void 0 && typeof id2 != "string") throw new Error(`schema ${schemaId} must be string`);
       }
-      key2 = (0, resolve_1.normalizeId)(key2 || id2);
-      this._checkUnique(key2);
-      this.schemas[key2] = this._addSchema(schema, _meta, key2, _validateSchema, true);
+      key = (0, resolve_1.normalizeId)(key || id2);
+      this._checkUnique(key);
+      this.schemas[key] = this._addSchema(schema, _meta, key, _validateSchema, true);
       return this;
     }
-    addMetaSchema(schema, key2, _validateSchema = this.opts.validateSchema) {
-      this.addSchema(schema, key2, true, _validateSchema);
+    addMetaSchema(schema, key, _validateSchema = this.opts.validateSchema) {
+      this.addSchema(schema, key, true, _validateSchema);
       return this;
     }
     validateSchema(schema, throwOrLogError) {
@@ -32573,12 +32498,12 @@ var require_core$3 = /* @__PURE__ */ __commonJSMin(((exports) => {
         const segments = jsonPointer.split("/").slice(1);
         let keywords = metaSchema;
         for (const seg of segments) keywords = keywords[seg];
-        for (const key2 in rules) {
-          const rule = rules[key2];
+        for (const key in rules) {
+          const rule = rules[key];
           if (typeof rule != "object") continue;
           const { $data } = rule.definition;
-          const schema = keywords[key2];
-          if ($data && schema) keywords[key2] = schemaOrData(schema);
+          const schema = keywords[key];
+          if ($data && schema) keywords[key] = schemaOrData(schema);
         }
       }
       return metaSchema;
@@ -32643,9 +32568,9 @@ var require_core$3 = /* @__PURE__ */ __commonJSMin(((exports) => {
   Ajv2.MissingRefError = ref_error_1.default;
   exports.default = Ajv2;
   function checkOptions(checkOpts, options, msg, log = "error") {
-    for (const key2 in checkOpts) {
-      const opt = key2;
-      if (opt in options) this.logger[log](`${msg}: option ${key2}. ${checkOpts[opt]}`);
+    for (const key in checkOpts) {
+      const opt = key;
+      if (opt in options) this.logger[log](`${msg}: option ${key}. ${checkOpts[opt]}`);
     }
   }
   function getSchEnv(keyRef) {
@@ -32656,7 +32581,7 @@ var require_core$3 = /* @__PURE__ */ __commonJSMin(((exports) => {
     const optsSchemas = this.opts.schemas;
     if (!optsSchemas) return;
     if (Array.isArray(optsSchemas)) this.addSchema(optsSchemas);
-    else for (const key2 in optsSchemas) this.addSchema(optsSchemas[key2], key2);
+    else for (const key in optsSchemas) this.addSchema(optsSchemas[key], key);
   }
   function addInitialFormats() {
     for (const name in this.opts.formats) {
@@ -33546,10 +33471,10 @@ var require_dependencies = /* @__PURE__ */ __commonJSMin(((exports) => {
   function splitDependencies({ schema }) {
     const propertyDeps = {};
     const schemaDeps = {};
-    for (const key2 in schema) {
-      if (key2 === "__proto__") continue;
-      const deps = Array.isArray(schema[key2]) ? propertyDeps : schemaDeps;
-      deps[key2] = schema[key2];
+    for (const key in schema) {
+      if (key === "__proto__") continue;
+      const deps = Array.isArray(schema[key]) ? propertyDeps : schemaDeps;
+      deps[key] = schema[key];
     }
     return [propertyDeps, schemaDeps];
   }
@@ -33611,13 +33536,13 @@ var require_propertyNames = /* @__PURE__ */ __commonJSMin(((exports) => {
       const { gen, schema, data, it } = cxt;
       if ((0, util_1.alwaysValidSchema)(it, schema)) return;
       const valid = gen.name("valid");
-      gen.forIn("key", data, (key2) => {
-        cxt.setParams({ propertyName: key2 });
+      gen.forIn("key", data, (key) => {
+        cxt.setParams({ propertyName: key });
         cxt.subschema({
           keyword: "propertyNames",
-          data: key2,
+          data: key,
           dataTypes: ["string"],
-          propertyName: key2,
+          propertyName: key,
           compositeRule: true
         }, valid);
         gen.if((0, codegen_1.not)(valid), () => {
@@ -33657,31 +33582,31 @@ var require_additionalProperties = /* @__PURE__ */ __commonJSMin(((exports) => {
       checkAdditionalProperties();
       cxt.ok((0, codegen_1._)`${errsCount} === ${names_1.default.errors}`);
       function checkAdditionalProperties() {
-        gen.forIn("key", data, (key2) => {
-          if (!props.length && !patProps.length) additionalPropertyCode(key2);
-          else gen.if(isAdditional(key2), () => additionalPropertyCode(key2));
+        gen.forIn("key", data, (key) => {
+          if (!props.length && !patProps.length) additionalPropertyCode(key);
+          else gen.if(isAdditional(key), () => additionalPropertyCode(key));
         });
       }
-      function isAdditional(key2) {
+      function isAdditional(key) {
         let definedProp;
         if (props.length > 8) {
           const propsSchema = (0, util_1.schemaRefOrVal)(it, parentSchema.properties, "properties");
-          definedProp = (0, code_1.isOwnProperty)(gen, propsSchema, key2);
-        } else if (props.length) definedProp = (0, codegen_1.or)(...props.map((p) => (0, codegen_1._)`${key2} === ${p}`));
+          definedProp = (0, code_1.isOwnProperty)(gen, propsSchema, key);
+        } else if (props.length) definedProp = (0, codegen_1.or)(...props.map((p) => (0, codegen_1._)`${key} === ${p}`));
         else definedProp = codegen_1.nil;
-        if (patProps.length) definedProp = (0, codegen_1.or)(definedProp, ...patProps.map((p) => (0, codegen_1._)`${(0, code_1.usePattern)(cxt, p)}.test(${key2})`));
+        if (patProps.length) definedProp = (0, codegen_1.or)(definedProp, ...patProps.map((p) => (0, codegen_1._)`${(0, code_1.usePattern)(cxt, p)}.test(${key})`));
         return (0, codegen_1.not)(definedProp);
       }
-      function deleteAdditional(key2) {
-        gen.code((0, codegen_1._)`delete ${data}[${key2}]`);
+      function deleteAdditional(key) {
+        gen.code((0, codegen_1._)`delete ${data}[${key}]`);
       }
-      function additionalPropertyCode(key2) {
+      function additionalPropertyCode(key) {
         if (opts.removeAdditional === "all" || opts.removeAdditional && schema === false) {
-          deleteAdditional(key2);
+          deleteAdditional(key);
           return;
         }
         if (schema === false) {
-          cxt.setParams({ additionalProperty: key2 });
+          cxt.setParams({ additionalProperty: key });
           cxt.error();
           if (!allErrors) gen.break();
           return;
@@ -33689,21 +33614,21 @@ var require_additionalProperties = /* @__PURE__ */ __commonJSMin(((exports) => {
         if (typeof schema == "object" && !(0, util_1.alwaysValidSchema)(it, schema)) {
           const valid = gen.name("valid");
           if (opts.removeAdditional === "failing") {
-            applyAdditionalSchema(key2, valid, false);
+            applyAdditionalSchema(key, valid, false);
             gen.if((0, codegen_1.not)(valid), () => {
               cxt.reset();
-              deleteAdditional(key2);
+              deleteAdditional(key);
             });
           } else {
-            applyAdditionalSchema(key2, valid);
+            applyAdditionalSchema(key, valid);
             if (!allErrors) gen.if((0, codegen_1.not)(valid), () => gen.break());
           }
         }
       }
-      function applyAdditionalSchema(key2, valid, errors) {
+      function applyAdditionalSchema(key, valid, errors) {
         const subschema = {
           keyword: "additionalProperties",
-          dataProp: key2,
+          dataProp: key,
           dataPropType: util_1.Type.Str
         };
         if (errors === false) Object.assign(subschema, {
@@ -33797,16 +33722,16 @@ var require_patternProperties = /* @__PURE__ */ __commonJSMin(((exports) => {
         for (const prop in checkProperties) if (new RegExp(pat).test(prop)) (0, util_1.checkStrictMode)(it, `property ${prop} matches pattern ${pat} (use allowMatchingProperties)`);
       }
       function validateProperties(pat) {
-        gen.forIn("key", data, (key2) => {
-          gen.if((0, codegen_1._)`${(0, code_1.usePattern)(cxt, pat)}.test(${key2})`, () => {
+        gen.forIn("key", data, (key) => {
+          gen.if((0, codegen_1._)`${(0, code_1.usePattern)(cxt, pat)}.test(${key})`, () => {
             const alwaysValid = alwaysValidPatterns.includes(pat);
             if (!alwaysValid) cxt.subschema({
               keyword: "patternProperties",
               schemaProp: pat,
-              dataProp: key2,
+              dataProp: key,
               dataPropType: util_2.Type.Str
             }, valid);
-            if (it.opts.unevaluated && props !== true) gen.assign((0, codegen_1._)`${props}[${key2}]`, true);
+            if (it.opts.unevaluated && props !== true) gen.assign((0, codegen_1._)`${props}[${key}]`, true);
             else if (!alwaysValid && !it.allErrors) gen.if((0, codegen_1.not)(valid), () => gen.break());
           });
         });
@@ -34657,13 +34582,13 @@ var require_unevaluatedProperties = /* @__PURE__ */ __commonJSMin(((exports) => 
       const { gen, schema, data, errsCount, it } = cxt;
       if (!errsCount) throw new Error("ajv implementation error");
       const { allErrors, props } = it;
-      if (props instanceof codegen_1.Name) gen.if((0, codegen_1._)`${props} !== true`, () => gen.forIn("key", data, (key2) => gen.if(unevaluatedDynamic(props, key2), () => unevaluatedPropCode(key2))));
-      else if (props !== true) gen.forIn("key", data, (key2) => props === void 0 ? unevaluatedPropCode(key2) : gen.if(unevaluatedStatic(props, key2), () => unevaluatedPropCode(key2)));
+      if (props instanceof codegen_1.Name) gen.if((0, codegen_1._)`${props} !== true`, () => gen.forIn("key", data, (key) => gen.if(unevaluatedDynamic(props, key), () => unevaluatedPropCode(key))));
+      else if (props !== true) gen.forIn("key", data, (key) => props === void 0 ? unevaluatedPropCode(key) : gen.if(unevaluatedStatic(props, key), () => unevaluatedPropCode(key)));
       it.props = true;
       cxt.ok((0, codegen_1._)`${errsCount} === ${names_1.default.errors}`);
-      function unevaluatedPropCode(key2) {
+      function unevaluatedPropCode(key) {
         if (schema === false) {
-          cxt.setParams({ unevaluatedProperty: key2 });
+          cxt.setParams({ unevaluatedProperty: key });
           cxt.error();
           if (!allErrors) gen.break();
           return;
@@ -34672,18 +34597,18 @@ var require_unevaluatedProperties = /* @__PURE__ */ __commonJSMin(((exports) => 
           const valid = gen.name("valid");
           cxt.subschema({
             keyword: "unevaluatedProperties",
-            dataProp: key2,
+            dataProp: key,
             dataPropType: util_1.Type.Str
           }, valid);
           if (!allErrors) gen.if((0, codegen_1.not)(valid), () => gen.break());
         }
       }
-      function unevaluatedDynamic(evaluatedProps, key2) {
-        return (0, codegen_1._)`!${evaluatedProps} || !${evaluatedProps}[${key2}]`;
+      function unevaluatedDynamic(evaluatedProps, key) {
+        return (0, codegen_1._)`!${evaluatedProps} || !${evaluatedProps}[${key}]`;
       }
-      function unevaluatedStatic(evaluatedProps, key2) {
+      function unevaluatedStatic(evaluatedProps, key) {
         const ps = [];
-        for (const p in evaluatedProps) if (evaluatedProps[p] === true) ps.push((0, codegen_1._)`${key2} !== ${p}`);
+        for (const p in evaluatedProps) if (evaluatedProps[p] === true) ps.push((0, codegen_1._)`${key} !== ${p}`);
         return (0, codegen_1.and)(...ps);
       }
     }
@@ -36208,11 +36133,11 @@ function resolveLegacyShimOptions(options) {
     legacyShim: options?.legacyShim ?? true
   };
 }
-function coerceEmbeddedInputRequest(method, key2, entry) {
-  if (entry === null || typeof entry !== "object" || typeof entry.method !== "string") throw new ProtocolError(ProtocolErrorCode.InternalError, `Handler for ${method} returned an invalid input request '${key2}': each inputRequests entry must be an embedded elicitation/create, sampling/createMessage, or roots/list request`);
+function coerceEmbeddedInputRequest(method, key, entry) {
+  if (entry === null || typeof entry !== "object" || typeof entry.method !== "string") throw new ProtocolError(ProtocolErrorCode.InternalError, `Handler for ${method} returned an invalid input request '${key}': each inputRequests entry must be an embedded elicitation/create, sampling/createMessage, or roots/list request`);
   const embedded = entry;
   const required2 = requiredClientCapabilitiesForInputRequest(embedded);
-  if (required2 === void 0) throw new ProtocolError(ProtocolErrorCode.InternalError, `Handler for ${method} returned an input request '${key2}' of kind '${embedded.method}', which is not an embedded request the 2026-07-28 revision defines`);
+  if (required2 === void 0) throw new ProtocolError(ProtocolErrorCode.InternalError, `Handler for ${method} returned an input request '${key}' of kind '${embedded.method}', which is not an embedded request the 2026-07-28 revision defines`);
   return {
     embedded,
     required: required2
@@ -36258,11 +36183,11 @@ var LegacyInputRequiredShim = class {
       if (hasInputRequests) {
         const declared = this._host.resolvedClientCapabilities(ctx);
         const coerced = [];
-        for (const [key2, entry] of Object.entries(inputRequests)) {
-          const { embedded, required: required2 } = coerceEmbeddedInputRequest(method, key2, entry);
-          if (embedded.method !== "roots/list" && embedded.params === void 0) throw new ProtocolError(ProtocolErrorCode.InternalError, `Handler for ${method} returned an input request '${key2}' of kind '${embedded.method}' without params`);
-          if (missingClientCapabilities(required2, declared) !== void 0) return legacyShimFailure(method, `Cannot request input '${key2}' (${embedded.method}): the client on this 2025-era connection did not declare the required capability${declared === void 0 ? " (no client capabilities are available on this connection \u2014 per-request legacy serving cannot receive server-to-client requests)" : ""}`);
-          coerced.push([key2, embedded]);
+        for (const [key, entry] of Object.entries(inputRequests)) {
+          const { embedded, required: required2 } = coerceEmbeddedInputRequest(method, key, entry);
+          if (embedded.method !== "roots/list" && embedded.params === void 0) throw new ProtocolError(ProtocolErrorCode.InternalError, `Handler for ${method} returned an input request '${key}' of kind '${embedded.method}' without params`);
+          if (missingClientCapabilities(required2, declared) !== void 0) return legacyShimFailure(method, `Cannot request input '${key}' (${embedded.method}): the client on this 2025-era connection did not declare the required capability${declared === void 0 ? " (no client capabilities are available on this connection \u2014 per-request legacy serving cannot receive server-to-client requests)" : ""}`);
+          coerced.push([key, embedded]);
         }
         const roundAbort = linkedRoundAbort(outerSignal);
         try {
@@ -36274,9 +36199,9 @@ var LegacyInputRequiredShim = class {
             },
             signal: roundAbort.signal
           };
-          const fulfilled = await Promise.all(coerced.map(async ([key2, embedded]) => {
+          const fulfilled = await Promise.all(coerced.map(async ([key, embedded]) => {
             try {
-              return [key2, await this._dispatchLeg(embedded, legOptions)];
+              return [key, await this._dispatchLeg(embedded, legOptions)];
             } catch (error62) {
               roundAbort.abort(error62);
               throw error62;
@@ -36583,10 +36508,10 @@ var Server = class extends Protocol {
     if (!hasInputRequests && !hasRequestState) throw new ProtocolError(ProtocolErrorCode.InternalError, `Handler for ${method} returned an input-required result with neither inputRequests nor requestState (every InputRequiredResult must include at least one of the two)`);
     if (hasInputRequests) {
       const declared = this._inputRequestCapabilityView(ctx);
-      for (const [key2, entry] of Object.entries(inputRequests)) {
-        const { embedded, required: required2 } = coerceEmbeddedInputRequest(method, key2, entry);
+      for (const [key, entry] of Object.entries(inputRequests)) {
+        const { embedded, required: required2 } = coerceEmbeddedInputRequest(method, key, entry);
         const missing = missingClientCapabilities(required2, declared);
-        if (missing !== void 0) throw new MissingRequiredClientCapabilityError({ requiredCapabilities: missing }, `Cannot request input '${key2}' (${embedded.method}): the request's client capabilities do not declare the required capability`);
+        if (missing !== void 0) throw new MissingRequiredClientCapabilityError({ requiredCapabilities: missing }, `Cannot request input '${key}' (${embedded.method}): the request's client capabilities do not declare the required capability`);
       }
     }
     return result;
@@ -36976,10 +36901,10 @@ function toolInputElementCount(value, max) {
       if (++count > max) return count;
       if (child !== null && typeof child === "object") stack.push(child);
     }
-    else for (const key2 in node2) {
-      if (!Object.prototype.hasOwnProperty.call(node2, key2)) continue;
+    else for (const key in node2) {
+      if (!Object.prototype.hasOwnProperty.call(node2, key)) continue;
       if (++count > max) return count;
-      const child = node2[key2];
+      const child = node2[key];
       if (child !== null && typeof child === "object") stack.push(child);
     }
   }
@@ -38324,7 +38249,7 @@ function formatCacheBytes(bytes) {
 init_account_service();
 
 // server/news/news-service.ts
-import { createHash as createHash3 } from "node:crypto";
+import { createHash as createHash4 } from "node:crypto";
 import { homedir as homedir2 } from "node:os";
 import { join as join3 } from "node:path";
 
@@ -38402,10 +38327,10 @@ function openCache(directory, now = Date.now) {
     const { epoch: _, realtime, cacheAutoDelete, ...values } = readCurrent();
     return { ...values, realtime: Boolean(realtime), cacheAutoDelete: Boolean(cacheAutoDelete) };
   }
-  function transaction(run) {
+  function transaction(run2) {
     db.exec("BEGIN IMMEDIATE");
     try {
-      const result = run();
+      const result = run2();
       db.exec("COMMIT");
       return result;
     } catch (error62) {
@@ -38565,9 +38490,9 @@ var RANK_CACHE_TTL = 1e4;
 var PREVIEW_TTL = 864e5;
 
 // server/news/watch-rankings.ts
-import { createHash as createHash2 } from "node:crypto";
+import { createHash as createHash3 } from "node:crypto";
 function rankRevision(ids) {
-  return createHash2("sha256").update(ids.slice(0, 20).join(",")).digest("hex");
+  return createHash3("sha256").update(ids.slice(0, 20).join(",")).digest("hex");
 }
 function positions(value) {
   if (value === null) return [];
@@ -38648,7 +38573,7 @@ function pageBounds(offset, limit) {
     throw fault("\uD398\uC774\uC9C0 \uBC94\uC704\uB97C \uD655\uC778\uD574 \uC8FC\uC138\uC694.", 400);
 }
 function signature(text) {
-  return createHash3("sha256").update(`${TRANSLATION_VERSION}\0${text}`).digest("hex");
+  return createHash4("sha256").update(`${TRANSLATION_VERSION}\0${text}`).digest("hex");
 }
 async function fetchJson(path) {
   const response = await fetch(`${HN_API}${path}.json`, { signal: AbortSignal.timeout(12e3) });
@@ -38742,10 +38667,10 @@ function createNewsService({
       return { ...page3, item: withKorean(page3.item), comments: page3.comments.map(withKorean) };
     return { ...page3, items: page3.items.map(withKorean) };
   }
-  function savePage(key2, page3) {
+  function savePage(key, page3) {
     const payload = JSON.stringify(page3);
-    if (Buffer.byteLength(payload) <= 256 * 1024) db.writePreview.run(key2, payload, now());
-    else db.forgetPreview.run(key2);
+    if (Buffer.byteLength(payload) <= 256 * 1024) db.writePreview.run(key, payload, now());
+    else db.forgetPreview.run(key);
     return cachedTranslations(page3);
   }
   function preview({
@@ -38784,8 +38709,8 @@ function createNewsService({
   function watch2({ sort, revision } = {}) {
     if (sort !== "top" && sort !== "new" || typeof revision !== "string" || !/^[a-f0-9]{64}$/.test(revision))
       throw fault("\uD53C\uB4DC \uAC31\uC2E0 \uC815\uBCF4\uB97C \uD655\uC778\uD574 \uC8FC\uC138\uC694.", 400);
-    const key2 = `watch:${sort}:${revision}`;
-    const pending = watching.get(key2);
+    const key = `watch:${sort}:${revision}`;
+    const pending = watching.get(key);
     if (pending) return pending;
     const action = watchRankings({
       sort,
@@ -38793,21 +38718,21 @@ function createNewsService({
       request: streamRequest,
       timeout: watchTimeout,
       onChange: (ids) => recent.set(`${sort}stories`, { value: ids, until: now() + RANK_CACHE_TTL })
-    }).finally(() => watching.delete(key2));
-    watching.set(key2, action);
+    }).finally(() => watching.delete(key));
+    watching.set(key, action);
     return action;
   }
   async function story2({ id: id2, offset = 0, limit = 10 } = {}) {
     pageBounds(offset, limit);
     if (!isId(id2)) throw fault("\uAC8C\uC2DC\uBB3C \uBC88\uD638\uB97C \uD655\uC778\uD574 \uC8FC\uC138\uC694.", 400);
     const item = await getItem(id2);
-    const key2 = [id2, offset, limit].join(":");
+    const key = [id2, offset, limit].join(":");
     if (!item) {
-      db.forgetPreview.run(key2);
+      db.forgetPreview.run(key);
       throw fault("\uC0AD\uC81C\uB418\uC5C8\uAC70\uB098 \uCC3E\uC744 \uC218 \uC5C6\uB294 \uAE00\uC785\uB2C8\uB2E4.", 404);
     }
     const { items: comments, ...pagination } = await page2(item.kids ?? [], offset, limit);
-    return savePage(key2, { item, comments, ...pagination });
+    return savePage(key, { item, comments, ...pagination });
   }
   async function runBatch(sources, model, epoch2) {
     const unitsBySource = sources.map(
@@ -38851,8 +38776,8 @@ function createNewsService({
       const text = item?.[field];
       if (!item || !text?.trim()) return [];
       const fingerprint = signature(text);
-      const key2 = [item.id, field, fingerprint, model, epoch2].join(":");
-      return [{ id: item.id, text, field, fingerprint, key: key2 }];
+      const key = [item.id, field, fingerprint, model, epoch2].join(":");
+      return [{ id: item.id, text, field, fingerprint, key }];
     });
     const active2 = /* @__PURE__ */ new Map();
     const missing = [];
@@ -38874,8 +38799,8 @@ function createNewsService({
       }
     }
     const output2 = await Promise.all(
-      sources.map(({ key: key2 }) => {
-        const result = active2.get(key2);
+      sources.map(({ key }) => {
+        const result = active2.get(key);
         if (!result) throw new Error("\uBC88\uC5ED \uACB0\uACFC\uB97C \uCC3E\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.");
         return result;
       })
@@ -38889,11 +38814,11 @@ function createNewsService({
   return { feed: feed2, watch: watch2, story: story2, preview, translate: translate2, preferences: db, close: () => db.close() };
 }
 var defaultService;
-var service2 = () => defaultService ??= createNewsService();
-var feed = (args) => service2().feed(args);
-var watch = (args) => service2().watch(args);
-var story = (args) => service2().story(args);
-var translate = (args) => service2().translate(args);
+var service = () => defaultService ??= createNewsService();
+var feed = (args) => service().feed(args);
+var watch = (args) => service().watch(args);
+var story = (args) => service().story(args);
+var translate = (args) => service().translate(args);
 
 // server/reader-tools.ts
 var cacheFields = Object.keys(CACHE_FIELDS);
@@ -38925,7 +38850,7 @@ function registerReaderTools(tool) {
       titles: external_exports.array(external_exports.object({ id, title: external_exports.string().max(2e3) })).max(20).optional()
     },
     true,
-    (args) => service2().preview(args)
+    (args) => service().preview(args)
   );
   tool(
     "hn_watch",
@@ -38957,7 +38882,7 @@ function registerReaderTools(tool) {
     beginSignIn
   );
   tool("hn_disconnect", "ChatGPT \uC5F0\uACB0 \uD574\uC81C", {}, false, signOut);
-  const preferences = () => service2().preferences;
+  const preferences = () => service().preferences;
   tool("hn_preferences", "\uB9AC\uB354 \uC124\uC815 \uC77D\uAE30", {}, true, () => preferences().values());
   tool(
     "hn_clear_cache",
@@ -39011,11 +38936,11 @@ var READER_VIEW_META = {
 var APP_VISIBILITY = { visibility: ["app"] };
 
 // server/mcp/reader.ts
-var html = await readFile2(new URL("./reader.html", import.meta.url), "utf8");
+var html = await readFile(new URL("./reader.html", import.meta.url), "utf8");
 var icons = await Promise.all(
   ["light", "dark"].map(async (theme) => {
     const asset = theme === "dark" ? "news-dark.svg" : "news.svg";
-    const image = await readFile2(new URL(`./assets/${asset}`, import.meta.url), "base64");
+    const image = await readFile(new URL(`./assets/${asset}`, import.meta.url), "base64");
     return {
       src: `data:image/svg+xml;base64,${image}`,
       mimeType: "image/svg+xml",
@@ -39051,7 +38976,7 @@ serveStdio(() => {
     },
     async () => ({ content: [], structuredContent: {} })
   );
-  registerReaderTools((name, title, schema, readOnly, run, outputSchema, describe3) => {
+  registerReaderTools((name, title, schema, readOnly, run2, outputSchema, describe3) => {
     server.registerTool(
       name,
       {
@@ -39065,7 +38990,7 @@ serveStdio(() => {
         _meta: { ui: APP_VISIBILITY }
       },
       async (args) => {
-        const data = await run(args);
+        const data = await run2(args);
         return {
           content: describe3 ? [{ type: "text", text: describe3(data) }] : [],
           structuredContent: { ...data }

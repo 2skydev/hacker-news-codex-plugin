@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { execFileSync } from "node:child_process";
+import { mkdtemp, readFile, realpath, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
@@ -8,6 +9,11 @@ import { fileURLToPath } from "node:url";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 
+import {
+  accountKeychain,
+  keychainAccount,
+  keychainService,
+} from "../server/account/account-keychain.ts";
 import type { Tools } from "../shared/types/reader.types.ts";
 
 interface ReaderToolMeta {
@@ -18,6 +24,15 @@ interface ReaderToolMeta {
 test("설치 패키지가 사이드바 화면과 로컬 도구를 제공한다", async (t) => {
   const dataDir = await mkdtemp(join(tmpdir(), "hn-reader-test-"));
   t.after(() => rm(dataDir, { recursive: true, force: true }));
+  const account = keychainAccount(join(await realpath(dataDir), "account"));
+  t.after(async () => {
+    if (await accountKeychain.read(account))
+      execFileSync(
+        "/usr/bin/security",
+        ["delete-generic-password", "-s", keychainService, "-a", account],
+        { stdio: "ignore" },
+      );
+  });
   const client = new Client({ name: "reader-test", version: "1.0.0" });
   const root = fileURLToPath(new URL("../dist/hacker-news/", import.meta.url));
   const { mcpServers } = JSON.parse(await readFile(join(root, "mcp.json"), "utf8"));
