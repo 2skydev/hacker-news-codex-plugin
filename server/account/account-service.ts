@@ -324,14 +324,14 @@ export function createAccountService({
         attempt.consumed = true;
         try {
           await finish(attempt, url.searchParams, attempt.redirect);
-          respond(200, "Hacker News에 ChatGPT 계정을 연결했습니다. 창을 닫고 Codex로 돌아가세요.");
+          respond(200, "Hacker News에 ChatGPT 계정을 연결했습니다. 창을 닫고 리더로 돌아가세요.");
         } catch (err) {
           if (pending === attempt)
             lastError =
               err instanceof Error && "code" in err && err.code === "disconnected"
                 ? err.message
                 : failedLogin().message;
-          respond(400, "ChatGPT 연결을 완료하지 못했습니다. Codex에서 다시 시도해 주세요.");
+          respond(400, "ChatGPT 연결을 완료하지 못했습니다. 리더에서 다시 시도해 주세요.");
         } finally {
           endAttempt(attempt);
         }

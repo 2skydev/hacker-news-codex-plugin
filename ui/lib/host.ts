@@ -2,10 +2,10 @@ import type { McpUiHostContext } from "@modelcontextprotocol/ext-apps";
 import { App, applyDocumentTheme, applyHostStyleVariables } from "@modelcontextprotocol/ext-apps";
 import type { MouseEvent } from "react";
 import { PLUGIN_INFO } from "../../shared/constants/plugin.constants.ts";
+import { READER_API_PATH } from "../../shared/constants/reader.constants.ts";
 import type { Preview, PreviewArgs, Tools } from "../../shared/types/reader.types.ts";
 import type { Notify } from "../types/reader.types.ts";
 
-const app = new App(PLUGIN_INFO, {}, { autoResize: false });
 function theme(context?: McpUiHostContext) {
   if (context?.theme) {
     applyDocumentTheme(context.theme);
@@ -15,13 +15,23 @@ function theme(context?: McpUiHostContext) {
   for (const [side, size] of Object.entries(context?.safeAreaInsets || {}))
     document.documentElement.style.setProperty(`--safe-${side}`, `${size}px`);
 }
-app.onhostcontextchanged = theme;
+let app: App | undefined;
+function hostApp() {
+  if (!app) {
+    app = new App(PLUGIN_INFO, {}, { autoResize: false });
+    app.onhostcontextchanged = theme;
+  }
+  return app;
+}
+
 let connection: Promise<void> | undefined;
-const standalone = import.meta.env.DEV && window.parent === window;
+const standalone =
+  import.meta.env.MODE === "standalone" || (import.meta.env.DEV && window.parent === window);
 export function connectHost() {
   if (standalone) return Promise.resolve();
   if (window.parent === window)
     return Promise.reject(new Error("Codex에서 Hacker News 리더를 열어 주세요."));
+  const app = hostApp();
   connection ??= app.connect().then(() => theme(app.getHostContext()));
   return connection;
 }
@@ -39,7 +49,7 @@ async function invoke<K extends keyof Tools>(
   await connectHost();
   const result = standalone
     ? await localTool(name, args, signal)
-    : await app.callServerTool(
+    : await hostApp().callServerTool(
         { name, arguments: args ?? {} },
         { signal, timeout: name === "hn_translate" ? 180000 : 60000 },
       );
@@ -53,14 +63,14 @@ async function localTool(
   name: keyof Tools,
   args: unknown,
   signal?: AbortSignal,
-): Promise<Awaited<ReturnType<typeof app.callServerTool>>> {
-  const response = await fetch("/__reader", {
+): Promise<Awaited<ReturnType<App["callServerTool"]>>> {
+  const response = await fetch(READER_API_PATH, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ name, args: args ?? {} }),
     signal,
   });
-  if (!response.ok) throw new Error("개발 서버에서 요청을 처리하지 못했습니다.");
+  if (!response.ok) throw new Error("로컬 서버에서 요청을 처리하지 못했습니다.");
   return response.json();
 }
 export async function openLink(url: string) {
@@ -68,7 +78,7 @@ export async function openLink(url: string) {
     window.open(url, "_blank", "noopener,noreferrer");
     return;
   }
-  const result = await app.openLink({ url });
+  const result = await hostApp().openLink({ url });
   if (result.isError) throw new Error("링크를 열지 못했습니다.");
 }
 export function interceptLink(event: MouseEvent, notify: Notify) {
@@ -77,7 +87,7 @@ export function interceptLink(event: MouseEvent, notify: Notify) {
   if (
     standalone ||
     !link ||
-    !app.getHostCapabilities()?.openLinks ||
+    !hostApp().getHostCapabilities()?.openLinks ||
     !/^https?:$/.test(link.protocol)
   )
     return;

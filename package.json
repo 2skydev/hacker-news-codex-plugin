@@ -9,13 +9,15 @@
   },
   "scripts": {
     "dev": "vite",
+    "start": "node dist/standalone/server.mjs",
     "format": "biome format --write",
     "lint": "biome lint",
     "check": "biome check && npm run typecheck",
     "typecheck": "tsc --noEmit",
     "build": "npm run typecheck && node scripts/build.ts",
+    "build:standalone": "npm run typecheck && node scripts/build.ts --standalone",
     "test": "node --test",
-    "pretest": "npm run build"
+    "pretest": "npm run build && node scripts/build.ts --standalone"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",

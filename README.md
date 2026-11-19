@@ -1,6 +1,20 @@
 # Hacker News
 
-Codex 데스크톱 왼쪽 사이드바에서 Hacker News 인기 글과 최신 글을 읽는 개인용 로컬 플러그인입니다. 사용자에게 권한을 받은 로컬 프로세스가 ChatGPT 구독으로 한국어 번역을 요청합니다.
+Hacker News 인기 글과 최신 글을 읽는 개인용 로컬 리더입니다. 브라우저에서 독립 실행하거나 Codex 데스크톱 사이드바에 플러그인으로 설치할 수 있습니다. 사용자에게 권한을 받은 로컬 프로세스가 ChatGPT 구독으로 한국어 번역을 요청합니다.
+
+## 브라우저에서 독립 실행
+
+Mac에서 Node.js 24 이상으로 아래 명령을 실행합니다. 터미널에 표시되는 `http://127.0.0.1:포트` 주소를 브라우저에서 여세요.
+
+```sh
+npm ci
+npm run build:standalone
+npm start
+```
+
+피드와 댓글은 바로 읽을 수 있습니다. 한국어 번역을 사용하려면 오른쪽 위 **설정**에서 ChatGPT 계정을 연결하세요. 기본으로 Codex 플러그인과 같은 로컬 저장 경로를 사용하므로 같은 Mac의 기존 연결과 번역 캐시, 설정을 이어 쓸 수 있습니다. 데이터 경로는 `HN_DATA_DIR`로 지정할 수 있습니다.
+
+빌드 결과인 `dist/standalone/`은 Node.js 24 이상이 있는 Mac에서 폴더 안의 `server.mjs`를 직접 실행할 수도 있습니다.
 
 ## 설치
 
@@ -40,12 +54,12 @@ npm test
 node scripts/check-desktop.ts "/Applications/ChatGPT.app/Contents/Resources/codex-cli/bin/codex"
 ```
 
-Node.js 24 이상에서 `npm run dev`를 실행하고 터미널의 로컬 주소를 브라우저에서 열면 플러그인 설치 없이 실제 피드, 댓글, 설정과 ChatGPT 연결을 사용할 수 있습니다. 개발 서버는 저장소에 포함된 MCP 서버를 실행하며, 기본적으로 설치된 플러그인과 같은 `~/.local/share/hacker-news/`의 번역 캐시, 설정, 로그인 정보를 사용합니다.
+Node.js 24 이상에서 `npm run dev`를 실행하고 터미널의 로컬 주소를 브라우저에서 열면 실제 피드, 댓글, 설정과 ChatGPT 연결을 사용할 수 있습니다. 개발 서버는 독립 실행 버전과 같은 로컬 HTTP API를 사용합니다.
 
-UI 페이지는 `ui/pages/`에, 피드와 토론, 설정의 구성 요소는 `ui/components/`에 있습니다. 화면 상태와 데이터 요청은 `ui/hooks/`에서 관리합니다. 서버는 `server/account/`와 `server/news/`로 나뉘며 `server/mcp/`가 각 기능을 리더 도구로 등록합니다. UI와 서버가 함께 쓰는 타입과 상수는 `shared/`에 있습니다.
+UI 페이지는 `ui/pages/`에, 피드와 토론, 설정의 구성 요소는 `ui/components/`에 있습니다. 화면 상태와 데이터 요청은 `ui/hooks/`에서 관리합니다. `server/mcp/`와 `server/http/`는 `server/reader-tools.ts`에 정의한 도구를 각 실행 환경에 연결합니다. UI와 서버가 함께 쓰는 타입과 상수는 `shared/`에 있습니다.
 
 `npm run format`으로 Biome 포맷을 적용하고 `npm run lint`로 린트를 실행합니다. `npm run check`는 Biome 검사와 UI, 서버, 스크립트, 테스트의 TypeScript 타입 검사를 실행합니다.
 
-React와 TypeScript로 작성한 UI는 Vite가 변경 즉시 반영합니다. 서버 소스를 수정했다면 `npm run build` 후 개발 서버를 다시 시작하세요. `npm test`는 단일 HTML 리더와 설치 패키지를 빌드한 뒤 테스트합니다.
+React와 TypeScript로 작성한 UI는 Vite가 변경 즉시 반영합니다. 서버 소스를 수정했다면 개발 서버를 다시 시작하세요. `npm test`는 플러그인 패키지와 독립 실행 버전을 빌드한 뒤 테스트합니다.
 
-로컬 MCP 서버가 OAuth 로그인, 토큰 갱신, 모델 조회와 Responses API 호출을 직접 처리합니다. React 리더에는 Codex UI Kit의 테마와 컴포넌트를 포함합니다. 새 버전을 배포할 때는 소스와 빌드 결과인 `dist/hacker-news/`를 함께 커밋하고 `main`에 푸시하세요. 설치하는 Mac은 이 패키지를 그대로 사용합니다.
+OAuth 로그인, 토큰 갱신, 모델 조회와 Responses API 호출은 로컬 서버에서 처리합니다. React 리더에는 Codex UI Kit의 테마와 컴포넌트를 포함합니다. 새 플러그인 버전을 배포할 때는 소스와 `npm run build`의 결과인 `dist/hacker-news/`를 함께 커밋하고 `main`에 푸시하세요. 설치하는 Mac은 이 패키지를 그대로 사용합니다.
