@@ -6,7 +6,6 @@ import { join } from "node:path";
 import test, { type TestContext } from "node:test";
 import { generateKeyPair, SignJWT } from "jose";
 import { readTranslationStream } from "../server/account/account-inference.ts";
-import type { readAccountPicture } from "../server/account/account-picture.ts";
 import { createAccountService, verifyIdentity } from "../server/account/account-service.ts";
 import { accountStore } from "../server/account/account-store.ts";
 import type { CredentialEncryption } from "../server/account/credential-encryption.ts";
@@ -41,7 +40,7 @@ function testEncryption(): CredentialEncryption {
   };
 }
 
-async function fixture(t: TestContext, readPicture?: typeof readAccountPicture) {
+async function fixture(t: TestContext) {
   const folder = await mkdtemp(join(tmpdir(), "hacker-news-account-"));
   t.after(() => rm(folder, { recursive: true, force: true }));
   const store = accountStore(folder, testEncryption());
@@ -99,7 +98,7 @@ async function fixture(t: TestContext, readPicture?: typeof readAccountPicture) 
     if (nonce) assert.equal(nonce, authorization.searchParams.get("nonce"));
     return { subject, label: "test@example.com" };
   };
-  const service = createAccountService({ store, request, verify, readPicture });
+  const service = createAccountService({ store, request, verify });
   async function begin(options?: Parameters<typeof service.beginSignIn>[0]) {
     authorization = new URL((await service.beginSignIn(options)).url);
     const redirect = authorization.searchParams.get("redirect_uri");
@@ -224,53 +223,20 @@ test("SDK에서 연결한 계정과 설치 ID를 암호화된 직접 API 저장�
   );
 });
 
-test("연결한 계정의 사진만 반환하고 토큰 자체는 공개하지 않는다", async (t) => {
-  const f = await fixture(t);
-  await f.login();
-  const picture = "https://cdn.openai.com/example.png";
-  const { privateKey } = await generateKeyPair("RS256");
-  const id = await new SignJWT({ sub: "person", picture })
-    .setProtectedHeader({ alg: "RS256" })
-    .sign(privateKey);
-  await f.store.exclusive(async (data, write) => {
-    const { tokens } = data.profiles[0];
-    assert.ok(tokens);
-    tokens.id = id;
-    await write(data);
-  });
-  const status = await f.service.accountStatus();
-  assert.equal(status.picture, picture);
-  assert.ok(!JSON.stringify(status).includes(id));
-  assert.equal((await f.service.signOut()).picture, undefined);
-});
-
-test("로그인 후 프로필 사진을 리더에 전달하고 이미지 다운로드 실패는 다음 조회에서 재시도한다", async (t) => {
+test("프로필 사진이 있는 계정도 리더에 계정 이름만 표시용으로 전달한다", async (t) => {
   const picture = "https://profile-images.example.org/avatar.png";
-  const dataUrl = "data:image/png;base64,cGljdHVyZQ==";
-  let downloads = 0;
-  const f = await fixture(t, async (url) => {
-    assert.equal(url, picture);
-    if (++downloads === 1) throw new Error("Temporary download failure");
-    return dataUrl;
-  });
-  assert.equal((await f.service.readerAccount()).picture, undefined);
-  assert.equal(downloads, 0);
-
+  const f = await fixture(t);
   const { privateKey } = await generateKeyPair("RS256");
   f.grant.id_token = await new SignJWT({ sub: "person", picture })
     .setProtectedHeader({ alg: "RS256" })
     .sign(privateKey);
   assert.equal((await f.login()).status, 200);
 
-  const first = await f.service.readerAccount();
-  assert.equal(first.connected, true);
-  assert.equal(first.picture, undefined);
-  assert.equal((await f.service.readerAccount()).picture, dataUrl);
-  assert.equal((await f.service.readerAccount()).picture, dataUrl);
-  assert.equal(downloads, 2);
-  assert.equal((await f.service.signOut()).picture, undefined);
-  assert.equal((await f.service.readerAccount()).picture, undefined);
-  assert.equal(downloads, 2);
+  const status = await f.service.accountStatus();
+  assert.equal(status.connected, true);
+  assert.equal(status.label, "test@example.com");
+  assert.equal(Object.hasOwn(status, "picture"), false);
+  assert.ok(!JSON.stringify(status).includes(f.grant.id_token));
 });
 
 test("callback checks state and cancel prevents using pending registration", async (t) => {
@@ -300,14 +266,14 @@ test("연결 해제 후 신규 계정의 등록을 기존 계정과 분리한다
   const f = await fixture(t);
   assert.equal((await f.login()).status, 200);
   assert.equal((await f.service.signOut()).connected, false);
-  assert.equal((await f.service.readerAccount()).profileId, "oaiapp_1");
+  assert.equal((await f.service.accountStatus()).profileId, "oaiapp_1");
   assert.equal((await f.login()).status, 200);
-  assert.equal((await f.service.readerAccount()).profileId, "oaiapp_1");
+  assert.equal((await f.service.accountStatus()).profileId, "oaiapp_1");
   assert.equal((await f.service.signOut()).connected, false);
 
   f.setSubject("another");
   assert.equal((await f.login({ newAccount: true })).status, 200);
-  const status = await f.service.readerAccount();
+  const status = await f.service.accountStatus();
   assert.equal(status.connected, true);
   assert.equal(status.profileId, "oaiapp_2");
   assert.deepEqual(
@@ -318,7 +284,7 @@ test("연결 해제 후 신규 계정의 등록을 기존 계정과 분리한다
   assert.equal((await f.service.signOut()).connected, false);
   f.setSubject("person");
   assert.equal((await f.login({ profileId: "oaiapp_1" })).status, 200);
-  assert.equal((await f.service.readerAccount()).profileId, "oaiapp_1");
+  assert.equal((await f.service.accountStatus()).profileId, "oaiapp_1");
 });
 
 test("refresh is serialized across workers", async (t) => {

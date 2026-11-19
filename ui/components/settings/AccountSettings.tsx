@@ -1,5 +1,4 @@
 import { ExternalLink } from "lucide-react";
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Field,
@@ -21,8 +20,6 @@ interface AccountSettingsProps {
 
 export function AccountSettings({ account, blocked, retry }: AccountSettingsProps) {
   const { session, busy, connect, connectNew, connectSaved, disconnect } = account;
-  const [failedPicture, setFailedPicture] = useState("");
-  const picture = session?.picture;
   const savedAccounts = session?.profiles?.filter((profile) => profile.id !== session.profileId);
 
   return (
@@ -33,11 +30,7 @@ export function AccountSettings({ account, blocked, retry }: AccountSettingsProp
           <div className="account-summary">
             {session?.connected && (
               <span className="account-avatar" aria-hidden="true">
-                {picture && picture !== failedPicture ? (
-                  <img src={picture} alt="" onError={() => setFailedPicture(picture)} />
-                ) : (
-                  (session.label || "ChatGPT").charAt(0).toUpperCase()
-                )}
+                {(session.label || "ChatGPT").charAt(0).toUpperCase()}
               </span>
             )}
             <FieldContent>

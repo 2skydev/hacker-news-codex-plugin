@@ -1,12 +1,6 @@
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { createServer, type Server } from "node:http";
-import {
-  createRemoteJWKSet,
-  decodeJwt,
-  type JWTVerifyGetKey,
-  jwtVerify,
-  type KeyInput,
-} from "jose";
+import { createRemoteJWKSet, type JWTVerifyGetKey, jwtVerify, type KeyInput } from "jose";
 import { AUTO_MODEL } from "../../shared/constants/settings.constants.ts";
 import type { Account, AccountSignIn } from "../../shared/types/reader.types.ts";
 import {
@@ -20,7 +14,6 @@ import {
 } from "./account.constants.ts";
 import type { TranslationEntry } from "./account-inference.ts";
 import { checkResponse, issue, translateTitles } from "./account-inference.ts";
-import { readAccountPicture } from "./account-picture.ts";
 import type { AccountProfile, AccountState, AccountTokens } from "./account-store.ts";
 import { accountStore } from "./account-store.ts";
 
@@ -78,19 +71,6 @@ function canTranslate(tokens?: AccountTokens): tokens is AccountTokens & { acces
       tokens.scopes.includes(sharing) &&
       (tokens.expires > Date.now() || tokens.refresh),
   );
-}
-
-function accountPicture(profile?: AccountProfile) {
-  if (!profile || !canTranslate(profile.tokens) || !profile.tokens.id) return;
-  let claims: ReturnType<typeof decodeJwt>;
-  try {
-    claims = decodeJwt(profile.tokens.id);
-  } catch {
-    return;
-  }
-  if (claims.sub !== profile.subject || typeof claims.picture !== "string") return;
-  const url = URL.parse(claims.picture);
-  if (url?.protocol === "https:" && !url.username && !url.password) return url.href;
 }
 
 export async function verifyIdentity(
@@ -163,26 +143,20 @@ export function createAccountService({
   store = accountStore(),
   request = fetch,
   verify = verifyIdentity,
-  readPicture = readAccountPicture,
 }: {
   store?: ReturnType<typeof accountStore>;
   request?: AccountRequest;
   verify?: typeof verifyIdentity;
-  readPicture?: typeof readAccountPicture;
 } = {}) {
   let pending: SignInAttempt | undefined;
   let lastError: string | undefined;
   let catalog: ModelCatalog | undefined;
-  let cachedPicture:
-    | { url: string; profileId?: string; expires: number; data: Promise<string | undefined> }
-    | undefined;
   let requests = new AbortController();
 
   function invalidate() {
     requests.abort();
     requests = new AbortController();
     catalog = undefined;
-    cachedPicture = undefined;
   }
 
   async function accountStatus(): Promise<
@@ -196,32 +170,12 @@ export function createAccountService({
       profileId: profile?.clientId,
       ...(pending?.url && { url: pending.url }),
       ...(profile?.label && { label: profile.label }),
-      picture: accountPicture(profile),
       ...(profile?.clientId === catalog?.clientId && catalog && { model: catalog.model }),
       ...(lastError && { error: lastError }),
       profiles: data.profiles
         .filter((p) => p.subject)
         .map((p) => ({ id: p.clientId, label: p.label })),
     };
-  }
-
-  async function readerAccount() {
-    const status = await accountStatus();
-    const { picture, profileId } = status;
-    if (!picture) return status;
-
-    if (
-      cachedPicture?.url !== picture ||
-      cachedPicture.profileId !== profileId ||
-      cachedPicture.expires < Date.now()
-    ) {
-      const data = readPicture(picture).catch(() => undefined);
-      cachedPicture = { url: picture, profileId, expires: Date.now() + 5 * 60_000, data };
-    }
-    const cached = cachedPicture;
-    const data = await cached.data;
-    if (!data && cachedPicture === cached) cachedPicture = undefined;
-    return { ...status, picture: data };
   }
 
   async function finish(attempt: SignInAttempt, params: URLSearchParams, redirect: string) {
@@ -383,7 +337,7 @@ export function createAccountService({
   async function signOut() {
     if (pending) {
       endAttempt(pending);
-      return readerAccount();
+      return accountStatus();
     }
     invalidate();
     lastError = undefined;
@@ -410,7 +364,7 @@ export function createAccountService({
       }
       lastError = "로컬 연결을 해제했습니다. 원격 해제 여부는 ChatGPT 설정에서 확인해 주세요.";
     });
-    return readerAccount();
+    return accountStatus();
   }
 
   async function credentials() {
@@ -572,8 +526,8 @@ export function createAccountService({
     }
   }
 
-  return { accountStatus, readerAccount, beginSignIn, signOut, translateBatch, listModels };
+  return { accountStatus, beginSignIn, signOut, translateBatch, listModels };
 }
 
-export const { readerAccount, beginSignIn, signOut, translateBatch, listModels } =
+export const { accountStatus, beginSignIn, signOut, translateBatch, listModels } =
   createAccountService();

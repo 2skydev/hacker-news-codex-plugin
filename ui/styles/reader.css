@@ -603,14 +603,8 @@ summary {
   height: 38px;
   flex: none;
   border-radius: 50%;
-  overflow: hidden;
   background: var(--secondary);
   font-weight: 600;
-}
-.account-avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
 }
 @media (prefers-reduced-motion: no-preference) {
   .translation-progress {

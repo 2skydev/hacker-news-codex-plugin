@@ -882,48 +882,11 @@ var init_remote = __esm({
   }
 });
 
-// node_modules/jose/dist/webapi/util/decode_jwt.js
-function decodeJwt(jwt2) {
-  if (typeof jwt2 != "string")
-    throw new JWTInvalid("JWTs must use Compact JWS serialization, JWT must be a string");
-  const { 1: encodedPayload, length } = jwt2.split(".");
-  if (length === 5)
-    throw new JWTInvalid("Only JWTs using Compact JWS serialization can be decoded");
-  if (length !== 3)
-    throw new JWTInvalid("Invalid JWT");
-  if (!encodedPayload)
-    throw new JWTInvalid("JWTs must contain a payload");
-  let claimsSetBytes;
-  try {
-    claimsSetBytes = decode3(encodedPayload);
-  } catch (cause) {
-    throw new JWTInvalid("Failed to base64url decode the payload", { cause });
-  }
-  let claimsSet;
-  try {
-    claimsSet = JSON.parse(strictDecoder.decode(claimsSetBytes));
-  } catch (cause) {
-    throw new JWTInvalid("Failed to parse the decoded payload as JSON", { cause });
-  }
-  if (!isObject2(claimsSet))
-    throw new JWTInvalid("Invalid JWT Claims Set");
-  return claimsSet;
-}
-var init_decode_jwt = __esm({
-  "node_modules/jose/dist/webapi/util/decode_jwt.js"() {
-    init_base64url();
-    init_buffer_utils();
-    init_validate();
-    init_errors();
-  }
-});
-
 // node_modules/jose/dist/webapi/index.js
 var init_webapi = __esm({
   "node_modules/jose/dist/webapi/index.js"() {
     init_verify();
     init_remote();
-    init_decode_jwt();
   }
 });
 
@@ -1081,98 +1044,6 @@ var init_account_inference = __esm({
         required: ["translations"],
         additionalProperties: false
       }
-    };
-  }
-});
-
-// server/account/account-picture.ts
-import { lookup } from "node:dns";
-import { get } from "node:https";
-import { BlockList, isIP } from "node:net";
-async function readAccountPicture(picture) {
-  const signal = AbortSignal.timeout(3e3);
-  let url2 = URL.parse(picture);
-  for (let redirects = 0; redirects <= 3; redirects++) {
-    if (url2?.protocol !== "https:" || url2.username || url2.password || url2.port || url2.hostname.startsWith("[") || isIP(url2.hostname))
-      return;
-    const target = url2;
-    const response = await new Promise((resolve, reject) => {
-      get(
-        target,
-        {
-          agent: false,
-          lookup: lookupPublic,
-          rejectUnauthorized: true,
-          signal,
-          headers: { accept: imageTypes.join(", ") }
-        },
-        resolve
-      ).once("error", reject);
-    });
-    const status = response.statusCode ?? 0;
-    const location = response.headers.location;
-    if (status >= 300 && status < 400 && location) {
-      response.destroy();
-      url2 = URL.parse(location, target);
-      continue;
-    }
-    const type = response.headers["content-type"]?.split(";", 1)[0].trim().toLowerCase();
-    if (status !== 200 || !type || !imageTypes.includes(type) || Number(response.headers["content-length"]) > maxPictureBytes) {
-      response.destroy();
-      return;
-    }
-    const chunks2 = [];
-    let size = 0;
-    for await (const chunk of response) {
-      size += chunk.length;
-      if (size > maxPictureBytes) return;
-      chunks2.push(chunk);
-    }
-    return size ? `data:${type};base64,${Buffer.concat(chunks2, size).toString("base64")}` : void 0;
-  }
-}
-var maxPictureBytes, imageTypes, nonPublic, globalIPv6, lookupPublic;
-var init_account_picture = __esm({
-  "server/account/account-picture.ts"() {
-    "use strict";
-    maxPictureBytes = 256 * 1024;
-    imageTypes = ["image/jpeg", "image/png", "image/webp", "image/gif", "image/avif"];
-    nonPublic = new BlockList();
-    globalIPv6 = new BlockList();
-    globalIPv6.addSubnet("2000::", 3, "ipv6");
-    for (const [address, prefix] of [
-      ["0.0.0.0", 8],
-      ["10.0.0.0", 8],
-      ["100.64.0.0", 10],
-      ["127.0.0.0", 8],
-      ["169.254.0.0", 16],
-      ["172.16.0.0", 12],
-      ["192.0.0.0", 24],
-      ["192.0.2.0", 24],
-      ["192.88.99.0", 24],
-      ["192.168.0.0", 16],
-      ["198.18.0.0", 15],
-      ["198.51.100.0", 24],
-      ["203.0.113.0", 24],
-      ["224.0.0.0", 3]
-    ]) {
-      nonPublic.addSubnet(address, prefix);
-    }
-    nonPublic.addSubnet("2001::", 23, "ipv6");
-    nonPublic.addSubnet("2001:db8::", 32, "ipv6");
-    nonPublic.addSubnet("2002::", 16, "ipv6");
-    nonPublic.addSubnet("3fff::", 20, "ipv6");
-    lookupPublic = (hostname3, options, callback) => {
-      lookup(hostname3, { ...options, all: true }, (error62, addresses) => {
-        if (error62) return callback(error62, "");
-        const publicAddresses = addresses.filter(
-          ({ address, family }) => family === 4 ? !nonPublic.check(address) : family === 6 && globalIPv6.check(address, "ipv6") && !nonPublic.check(address, "ipv6")
-        );
-        const first = publicAddresses[0];
-        if (!first) return callback(new Error("Profile picture requires a public address"), "");
-        if (options.all) return callback(null, publicAddresses);
-        callback(null, first.address, first.family);
-      });
     };
   }
 });
@@ -2771,10 +2642,10 @@ function security(args, input2) {
   });
 }
 async function key(create) {
-  const lookup2 = ["find-generic-password", "-s", service, "-a", account, "-w"];
+  const lookup = ["find-generic-password", "-s", service, "-a", account, "-w"];
   let value;
   try {
-    value = await security(lookup2);
+    value = await security(lookup);
   } catch (error62) {
     if (!create || !(error62 instanceof Error && "code" in error62 && error62.code === 44)) throw error62;
     await security(
@@ -2782,7 +2653,7 @@ async function key(create) {
       `add-generic-password -s ${service} -a ${account} -w ${randomBytes(32).toString("hex")}
 `
     );
-    value = await security(lookup2);
+    value = await security(lookup);
   }
   if (!/^[0-9a-f]{64}$/.test(value)) throw new Error("\uD0A4\uCCB4\uC778\uC5D0 \uC800\uC7A5\uB41C \uC554\uD638\uD654 \uD0A4\uB97C \uD655\uC778\uD574 \uC8FC\uC138\uC694.");
   return Buffer.from(value, "hex");
@@ -2934,10 +2805,10 @@ var init_account_store = __esm({
 // server/account/account-service.ts
 var account_service_exports = {};
 __export(account_service_exports, {
+  accountStatus: () => accountStatus,
   beginSignIn: () => beginSignIn,
   createAccountService: () => createAccountService,
   listModels: () => listModels,
-  readerAccount: () => readerAccount,
   signOut: () => signOut,
   translateBatch: () => translateBatch,
   verifyIdentity: () => verifyIdentity
@@ -2948,18 +2819,6 @@ function canTranslate(tokens) {
   return Boolean(
     tokens?.access && tokens.scopes.includes(sharing) && (tokens.expires > Date.now() || tokens.refresh)
   );
-}
-function accountPicture(profile) {
-  if (!profile || !canTranslate(profile.tokens) || !profile.tokens.id) return;
-  let claims;
-  try {
-    claims = decodeJwt(profile.tokens.id);
-  } catch {
-    return;
-  }
-  if (claims.sub !== profile.subject || typeof claims.picture !== "string") return;
-  const url2 = URL.parse(claims.picture);
-  if (url2?.protocol === "https:" && !url2.username && !url2.password) return url2.href;
 }
 async function verifyIdentity(token, clientId, nonce, date5, verificationKey = jwks) {
   const { payload } = await jwtVerify(token, verificationKey, {
@@ -3000,21 +2859,18 @@ async function postForm(request, url2, params) {
 function createAccountService({
   store = accountStore(),
   request = fetch,
-  verify = verifyIdentity,
-  readPicture = readAccountPicture
+  verify = verifyIdentity
 } = {}) {
   let pending;
   let lastError;
   let catalog;
-  let cachedPicture;
   let requests = new AbortController();
   function invalidate() {
     requests.abort();
     requests = new AbortController();
     catalog = void 0;
-    cachedPicture = void 0;
   }
-  async function accountStatus() {
+  async function accountStatus2() {
     const data = await store.read();
     const profile = active(data);
     return {
@@ -3023,24 +2879,10 @@ function createAccountService({
       profileId: profile?.clientId,
       ...pending?.url && { url: pending.url },
       ...profile?.label && { label: profile.label },
-      picture: accountPicture(profile),
       ...profile?.clientId === catalog?.clientId && catalog && { model: catalog.model },
       ...lastError && { error: lastError },
       profiles: data.profiles.filter((p) => p.subject).map((p) => ({ id: p.clientId, label: p.label }))
     };
-  }
-  async function readerAccount2() {
-    const status = await accountStatus();
-    const { picture, profileId } = status;
-    if (!picture) return status;
-    if (cachedPicture?.url !== picture || cachedPicture.profileId !== profileId || cachedPicture.expires < Date.now()) {
-      const data2 = readPicture(picture).catch(() => void 0);
-      cachedPicture = { url: picture, profileId, expires: Date.now() + 5 * 6e4, data: data2 };
-    }
-    const cached2 = cachedPicture;
-    const data = await cached2.data;
-    if (!data && cachedPicture === cached2) cachedPicture = void 0;
-    return { ...status, picture: data };
   }
   async function finish(attempt, params, redirect) {
     const code = params.get("code");
@@ -3123,11 +2965,11 @@ function createAccountService({
         attempt.consumed = true;
         try {
           await finish(attempt, url3.searchParams, attempt.redirect);
-          respond(200, "Hacker News\uC5D0 ChatGPT \uACC4\uC815\uC744 \uC5F0\uACB0\uD588\uC2B5\uB2C8\uB2E4. \uCC3D\uC744 \uB2EB\uACE0 Codex\uB85C \uB3CC\uC544\uAC00\uC138\uC694.");
+          respond(200, "Hacker News\uC5D0 ChatGPT \uACC4\uC815\uC744 \uC5F0\uACB0\uD588\uC2B5\uB2C8\uB2E4. \uCC3D\uC744 \uB2EB\uACE0 \uB9AC\uB354\uB85C \uB3CC\uC544\uAC00\uC138\uC694.");
         } catch (err) {
           if (pending === attempt)
             lastError = err instanceof Error && "code" in err && err.code === "disconnected" ? err.message : failedLogin().message;
-          respond(400, "ChatGPT \uC5F0\uACB0\uC744 \uC644\uB8CC\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4. Codex\uC5D0\uC11C \uB2E4\uC2DC \uC2DC\uB3C4\uD574 \uC8FC\uC138\uC694.");
+          respond(400, "ChatGPT \uC5F0\uACB0\uC744 \uC644\uB8CC\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4. \uB9AC\uB354\uC5D0\uC11C \uB2E4\uC2DC \uC2DC\uB3C4\uD574 \uC8FC\uC138\uC694.");
         } finally {
           endAttempt(attempt);
         }
@@ -3176,7 +3018,7 @@ function createAccountService({
   async function signOut2() {
     if (pending) {
       endAttempt(pending);
-      return readerAccount2();
+      return accountStatus2();
     }
     invalidate();
     lastError = void 0;
@@ -3202,7 +3044,7 @@ function createAccountService({
       }
       lastError = "\uB85C\uCEEC \uC5F0\uACB0\uC744 \uD574\uC81C\uD588\uC2B5\uB2C8\uB2E4. \uC6D0\uACA9 \uD574\uC81C \uC5EC\uBD80\uB294 ChatGPT \uC124\uC815\uC5D0\uC11C \uD655\uC778\uD574 \uC8FC\uC138\uC694.";
     });
-    return readerAccount2();
+    return accountStatus2();
   }
   async function credentials() {
     return store.exclusive(async (data, write) => {
@@ -3292,7 +3134,7 @@ function createAccountService({
     return catalog;
   }
   async function listModels2() {
-    if (!(await accountStatus()).connected) return [];
+    if (!(await accountStatus2()).connected) return [];
     const grant = await credentials();
     const result = await loadCatalog(
       grant,
@@ -3336,9 +3178,9 @@ function createAccountService({
       throw err;
     }
   }
-  return { accountStatus, readerAccount: readerAccount2, beginSignIn: beginSignIn2, signOut: signOut2, translateBatch: translateBatch2, listModels: listModels2 };
+  return { accountStatus: accountStatus2, beginSignIn: beginSignIn2, signOut: signOut2, translateBatch: translateBatch2, listModels: listModels2 };
 }
-var jwks, disconnected, changed, failedLogin, secret, active, readerAccount, beginSignIn, signOut, translateBatch, listModels;
+var jwks, disconnected, changed, failedLogin, secret, active, accountStatus, beginSignIn, signOut, translateBatch, listModels;
 var init_account_service = __esm({
   "server/account/account-service.ts"() {
     "use strict";
@@ -3346,7 +3188,6 @@ var init_account_service = __esm({
     init_settings_constants();
     init_account_constants();
     init_account_inference();
-    init_account_picture();
     init_account_store();
     jwks = createRemoteJWKSet(new URL(`${issuer}/.well-known/jwks.json`));
     disconnected = () => issue2("disconnected", "ChatGPT \uACC4\uC815\uC5D0 \uC5F0\uACB0\uD558\uACE0 \uD50C\uB79C \uC0AC\uC6A9\uC744 \uD5C8\uC6A9\uD574 \uC8FC\uC138\uC694.");
@@ -3354,7 +3195,7 @@ var init_account_service = __esm({
     failedLogin = () => issue2("sign_in_failed", "ChatGPT \uB85C\uADF8\uC778\uC744 \uC644\uB8CC\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4. \uB2E4\uC2DC \uC2DC\uB3C4\uD574 \uC8FC\uC138\uC694.");
     secret = () => randomBytes2(32).toString("base64url");
     active = (data) => data.profiles.find((p) => p.clientId === data.active);
-    ({ readerAccount, beginSignIn, signOut, translateBatch, listModels } = createAccountService());
+    ({ accountStatus, beginSignIn, signOut, translateBatch, listModels } = createAccountService());
   }
 });
 
@@ -6953,14 +6794,14 @@ var $ZodObject = /* @__PURE__ */ $constructor("$ZodObject", (inst, def) => {
   const desc = Object.getOwnPropertyDescriptor(def, "shape");
   const sh = desc?.get ? desc.get.raw : def.shape ?? {};
   if (sh) {
-    const get2 = () => {
+    const get = () => {
       const newSh = { ...sh };
       Object.defineProperty(def, "shape", { value: newSh });
-      get2.raw = newSh;
+      get.raw = newSh;
       return newSh;
     };
-    get2.raw = sh;
-    Object.defineProperty(def, "shape", { get: get2 });
+    get.raw = sh;
+    Object.defineProperty(def, "shape", { get });
   }
   const _normalized = cached(() => normalizeDef(def));
   defineLazyInternal(inst, "propValues", (zod) => {
@@ -31663,8 +31504,8 @@ var require_utils = /* @__PURE__ */ __commonJSMin(((exports, module) => {
   };
   const HOST_DELIM_RE = /[@/?#:]/g;
   const HOST_DELIM_NO_COLON_RE = /[@/?#]/g;
-  function reescapeHostDelimiters(host, isIP2) {
-    const re = isIP2 ? HOST_DELIM_NO_COLON_RE : HOST_DELIM_RE;
+  function reescapeHostDelimiters(host, isIP) {
+    const re = isIP ? HOST_DELIM_NO_COLON_RE : HOST_DELIM_RE;
     re.lastIndex = 0;
     return host.replace(re, (ch) => HOST_DELIMS[ch]);
   }
@@ -32178,8 +32019,8 @@ var require_fast_uri = /* @__PURE__ */ __commonJSMin(((exports, module) => {
     const host = matches[4];
     return hasMalformedPercentEncoding(matches[3]) || host !== void 0 && !isIPLiteral(host) && hasMalformedPercentEncoding(host) || hasMalformedPercentEncoding(matches[6]) || hasMalformedPercentEncoding(matches[7]) || hasMalformedPercentEncoding(matches[8]);
   }
-  function canonicalizeHost(parsed, options, schemeHandler, isIP2) {
-    if (!options.unicodeSupport && (!schemeHandler || !schemeHandler.unicodeSupport) && parsed.host && !isIPLiteral(parsed.host) && (options.domainHost || schemeHandler && schemeHandler.domainHost) && isIP2 === false && nonSimpleDomain(parsed.host)) try {
+  function canonicalizeHost(parsed, options, schemeHandler, isIP) {
+    if (!options.unicodeSupport && (!schemeHandler || !schemeHandler.unicodeSupport) && parsed.host && !isIPLiteral(parsed.host) && (options.domainHost || schemeHandler && schemeHandler.domainHost) && isIP === false && nonSimpleDomain(parsed.host)) try {
       parsed.host = new URL("http://" + parsed.host).hostname;
     } catch (e) {
       parsed.error = parsed.error || "Host's domain name can not be converted to ASCII: " + e;
@@ -32204,7 +32045,7 @@ var require_fast_uri = /* @__PURE__ */ __commonJSMin(((exports, module) => {
     let malformedHost = false;
     let malformedIPLiteral = false;
     let malformedScheme = false;
-    let isIP2 = false;
+    let isIP = false;
     if (options.reference === "suffix") if (options.scheme) uri = options.scheme + ":" + uri;
     else uri = "//" + uri;
     const authorityMatch = uri.match(AUTHORITY_PREFIX);
@@ -32255,25 +32096,25 @@ var require_fast_uri = /* @__PURE__ */ __commonJSMin(((exports, module) => {
         const bracketedIPLiteral = isIPLiteral(parsed.host);
         const hasIPLiteralBracket = parsed.host.indexOf("[") !== -1 || parsed.host.indexOf("]") !== -1;
         const ipv6result = normalizeIPv6(parsed.host);
-        isIP2 = ipv6result.isIPV6 || ipv6result.isIPVFuture === true;
+        isIP = ipv6result.isIPV6 || ipv6result.isIPVFuture === true;
         malformedIPLiteral = hasIPLiteralBracket && (!bracketedIPLiteral || ipv6result.error === true);
-        parsed.host = isIP2 ? ipv6result.host : ipv6result.host.toLowerCase();
+        parsed.host = isIP ? ipv6result.host : ipv6result.host.toLowerCase();
         if (malformedIPLiteral) {
           parsed.error = parsed.error || "URI host is malformed.";
           malformedAuthorityOrPort = true;
         }
-      } else isIP2 = true;
+      } else isIP = true;
       if (parsed.scheme === void 0 && parsed.userinfo === void 0 && parsed.host === void 0 && parsed.port === void 0 && parsed.query === void 0 && !parsed.path) parsed.reference = "same-document";
       else if (parsed.scheme === void 0) parsed.reference = "relative";
       else if (parsed.fragment === void 0) parsed.reference = "absolute";
       else parsed.reference = "uri";
       if (options.reference && options.reference !== "suffix" && options.reference !== parsed.reference) parsed.error = parsed.error || "URI is not a " + options.reference + " reference.";
       const schemeHandler = getSchemeHandler(options.scheme || parsed.scheme);
-      if (!malformedIPLiteral) malformedHost = canonicalizeHost(parsed, options, schemeHandler, isIP2);
+      if (!malformedIPLiteral) malformedHost = canonicalizeHost(parsed, options, schemeHandler, isIP);
       if (uri.indexOf("%") !== -1 && parsed.host !== void 0 && !malformedIPLiteral) {
-        let host = isIP2 ? parsed.host : normalizePercentEncoding(parsed.host, true);
-        if (!isIP2) host = normalizePercentEncoding(host.toLowerCase());
-        parsed.host = reescapeHostDelimiters(host, isIP2);
+        let host = isIP ? parsed.host : normalizePercentEncoding(parsed.host, true);
+        if (!isIP) host = normalizePercentEncoding(host.toLowerCase());
+        parsed.host = reescapeHostDelimiters(host, isIP);
       }
       if (!schemeHandler || schemeHandler && !schemeHandler.skipNormalize) {
         if (parsed.path) parsed.path = normalizePathEncoding(parsed.path);
@@ -38470,7 +38311,7 @@ function toError(value) {
 // shared/constants/plugin.constants.ts
 var PLUGIN_INFO = { name: "hacker-news", version: "0.3.10" };
 
-// server/mcp/reader.ts
+// server/reader-tools.ts
 init_settings_constants();
 
 // shared/lib/format-cache-bytes.ts
@@ -38479,7 +38320,7 @@ function formatCacheBytes(bytes) {
   return `${(bytes / scale).toLocaleString("ko", { maximumFractionDigits: 1 })} ${unit}`;
 }
 
-// server/mcp/reader.ts
+// server/reader-tools.ts
 init_account_service();
 
 // server/news/news-service.ts
@@ -39054,28 +38895,7 @@ var watch = (args) => service2().watch(args);
 var story = (args) => service2().story(args);
 var translate = (args) => service2().translate(args);
 
-// server/mcp/reader.constants.ts
-var READER_URI = "ui://hacker-news/reader-v1";
-var READER_MIME_TYPE = "text/html;profile=mcp-app";
-var READER_VIEW_META = {
-  "openai/ui": { preferredDisplayMode: "fullscreen", availableDisplayModes: ["fullscreen"] }
-};
-var APP_VISIBILITY = { visibility: ["app"] };
-
-// server/mcp/reader.ts
-var html = await readFile2(new URL("./reader.html", import.meta.url), "utf8");
-var icons = await Promise.all(
-  ["light", "dark"].map(async (theme) => {
-    const asset = theme === "dark" ? "news-dark.svg" : "news.svg";
-    const image = await readFile2(new URL(`./assets/${asset}`, import.meta.url), "base64");
-    return {
-      src: `data:image/svg+xml;base64,${image}`,
-      mimeType: "image/svg+xml",
-      sizes: ["any"],
-      theme
-    };
-  })
-);
+// server/reader-tools.ts
 var cacheFields = Object.keys(CACHE_FIELDS);
 var cachePeriods = Object.keys(CACHE_PERIODS);
 var settingsValues = external_exports.object({
@@ -39092,52 +38912,7 @@ var page = {
   offset: external_exports.int().nonnegative().optional(),
   limit: external_exports.int().positive().max(50).optional()
 };
-serveStdio(() => {
-  const server = new McpServer({ ...PLUGIN_INFO, title: "Hacker News", icons });
-  server.registerResource(
-    "Hacker News",
-    READER_URI,
-    { mimeType: READER_MIME_TYPE, _meta: READER_VIEW_META },
-    async () => ({
-      contents: [
-        { uri: READER_URI, mimeType: READER_MIME_TYPE, text: html, _meta: READER_VIEW_META }
-      ]
-    })
-  );
-  server.registerTool(
-    "open_reader",
-    {
-      title: "Hacker News",
-      description: "\uD55C\uAD6D\uC5B4 Hacker News \uD53C\uB4DC\uB97C \uC5FD\uB2C8\uB2E4.",
-      inputSchema: external_exports.object({}),
-      icons,
-      annotations: { readOnlyHint: true },
-      _meta: {
-        ui: { ...APP_VISIBILITY, resourceUri: READER_URI },
-        "openai/ui": { entrypoints: [{ type: "global" }] }
-      }
-    },
-    async () => ({ content: [], structuredContent: {} })
-  );
-  function tool(name, title, schema, readOnly, run, outputSchema) {
-    server.registerTool(
-      name,
-      {
-        title,
-        inputSchema: external_exports.object(schema),
-        outputSchema,
-        annotations: {
-          readOnlyHint: readOnly,
-          destructiveHint: ["hn_disconnect", "hn_clear_cache"].includes(name)
-        },
-        _meta: { ui: APP_VISIBILITY }
-      },
-      async (args) => {
-        const data = await run(args);
-        return { content: [], structuredContent: { ...data } };
-      }
-    );
-  }
+function registerReaderTools(tool) {
   tool("hn_feed", "\uD53C\uB4DC \uC77D\uAE30", { sort: external_exports.enum(["top", "new"]), ...page }, true, feed);
   tool(
     "hn_preview",
@@ -39173,7 +38948,7 @@ serveStdio(() => {
     false,
     translate
   );
-  tool("hn_account", "ChatGPT \uC5F0\uACB0 \uC0C1\uD0DC", {}, true, readerAccount);
+  tool("hn_account", "ChatGPT \uC5F0\uACB0 \uC0C1\uD0DC", {}, true, accountStatus);
   tool(
     "hn_connect",
     "ChatGPT \uC5F0\uACB0",
@@ -39184,27 +38959,14 @@ serveStdio(() => {
   tool("hn_disconnect", "ChatGPT \uC5F0\uACB0 \uD574\uC81C", {}, false, signOut);
   const preferences = () => service2().preferences;
   tool("hn_preferences", "\uB9AC\uB354 \uC124\uC815 \uC77D\uAE30", {}, true, () => preferences().values());
-  server.registerTool(
+  tool(
     "hn_clear_cache",
-    {
-      title: "\uC120\uD0DD\uD55C \uCE90\uC2DC \uBE44\uC6B0\uAE30",
-      inputSchema: settingsValues.pick({ cacheField: true, cachePeriod: true }),
-      annotations: { readOnlyHint: false, destructiveHint: true },
-      _meta: { ui: APP_VISIBILITY }
-    },
-    async ({ cacheField, cachePeriod }) => {
-      const db = preferences();
-      const result = db.clear(CACHE_FIELDS[cacheField], CACHE_PERIODS[cachePeriod], Date.now());
-      return {
-        content: [
-          {
-            type: "text",
-            text: `${result.removed}\uAC1C \uC0AD\uC81C\uD588\uC2B5\uB2C8\uB2E4. \uB0A8\uC740 \uBC88\uC5ED ${result.count.toLocaleString("ko")}\uAC1C (${formatCacheBytes(result.bytes)})`
-          }
-        ],
-        structuredContent: result
-      };
-    }
+    "\uC120\uD0DD\uD55C \uCE90\uC2DC \uBE44\uC6B0\uAE30",
+    settingsValues.pick({ cacheField: true, cachePeriod: true }).shape,
+    false,
+    ({ cacheField, cachePeriod }) => preferences().clear(CACHE_FIELDS[cacheField], CACHE_PERIODS[cachePeriod], Date.now()),
+    void 0,
+    (result) => `${result.removed}\uAC1C \uC0AD\uC81C\uD588\uC2B5\uB2C8\uB2E4. \uB0A8\uC740 \uBC88\uC5ED ${result.count.toLocaleString("ko")}\uAC1C (${formatCacheBytes(result.bytes)})`
   );
   tool("hn_settings_read", "Hacker News \uC124\uC815", {}, true, async () => {
     const values = preferences().values();
@@ -39238,6 +39000,79 @@ serveStdio(() => {
     },
     external_exports.object({ values: settingsValues, cache: cacheStats })
   );
+}
+
+// server/mcp/reader.constants.ts
+var READER_URI = "ui://hacker-news/reader-v1";
+var READER_MIME_TYPE = "text/html;profile=mcp-app";
+var READER_VIEW_META = {
+  "openai/ui": { preferredDisplayMode: "fullscreen", availableDisplayModes: ["fullscreen"] }
+};
+var APP_VISIBILITY = { visibility: ["app"] };
+
+// server/mcp/reader.ts
+var html = await readFile2(new URL("./reader.html", import.meta.url), "utf8");
+var icons = await Promise.all(
+  ["light", "dark"].map(async (theme) => {
+    const asset = theme === "dark" ? "news-dark.svg" : "news.svg";
+    const image = await readFile2(new URL(`./assets/${asset}`, import.meta.url), "base64");
+    return {
+      src: `data:image/svg+xml;base64,${image}`,
+      mimeType: "image/svg+xml",
+      sizes: ["any"],
+      theme
+    };
+  })
+);
+serveStdio(() => {
+  const server = new McpServer({ ...PLUGIN_INFO, title: "Hacker News", icons });
+  server.registerResource(
+    "Hacker News",
+    READER_URI,
+    { mimeType: READER_MIME_TYPE, _meta: READER_VIEW_META },
+    async () => ({
+      contents: [
+        { uri: READER_URI, mimeType: READER_MIME_TYPE, text: html, _meta: READER_VIEW_META }
+      ]
+    })
+  );
+  server.registerTool(
+    "open_reader",
+    {
+      title: "Hacker News",
+      description: "\uD55C\uAD6D\uC5B4 Hacker News \uD53C\uB4DC\uB97C \uC5FD\uB2C8\uB2E4.",
+      inputSchema: external_exports.object({}),
+      icons,
+      annotations: { readOnlyHint: true },
+      _meta: {
+        ui: { ...APP_VISIBILITY, resourceUri: READER_URI },
+        "openai/ui": { entrypoints: [{ type: "global" }] }
+      }
+    },
+    async () => ({ content: [], structuredContent: {} })
+  );
+  registerReaderTools((name, title, schema, readOnly, run, outputSchema, describe3) => {
+    server.registerTool(
+      name,
+      {
+        title,
+        inputSchema: external_exports.object(schema),
+        outputSchema,
+        annotations: {
+          readOnlyHint: readOnly,
+          destructiveHint: name === "hn_disconnect" || name === "hn_clear_cache"
+        },
+        _meta: { ui: APP_VISIBILITY }
+      },
+      async (args) => {
+        const data = await run(args);
+        return {
+          content: describe3 ? [{ type: "text", text: describe3(data) }] : [],
+          structuredContent: { ...data }
+        };
+      }
+    );
+  });
   return server;
 });
 /*! Bundled license information:

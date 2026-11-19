@@ -7,7 +7,7 @@ import {
 } from "../shared/constants/settings.constants.ts";
 import { formatCacheBytes } from "../shared/lib/format-cache-bytes.ts";
 import type { Preferences, SettingsData, Tools } from "../shared/types/reader.types.ts";
-import { beginSignIn, listModels, readerAccount, signOut } from "./account/account-service.ts";
+import { accountStatus, beginSignIn, listModels, signOut } from "./account/account-service.ts";
 import { feed, service, story, translate, watch } from "./news/news-service.ts";
 
 const cacheFields = Object.keys(CACHE_FIELDS) as Preferences["cacheField"][];
@@ -77,7 +77,7 @@ export function registerReaderTools(tool: RegisterReaderTool) {
     translate,
   );
 
-  tool("hn_account", "ChatGPT 연결 상태", {}, true, readerAccount);
+  tool("hn_account", "ChatGPT 연결 상태", {}, true, accountStatus);
   tool(
     "hn_connect",
     "ChatGPT 연결",

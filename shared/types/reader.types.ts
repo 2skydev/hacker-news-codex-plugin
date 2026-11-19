@@ -36,7 +36,6 @@ export interface Preview<T> {
   titles?: Pick<Item, "id" | "title" | "titleKo">[];
 }
 export interface Account {
-  picture?: string;
   label?: string;
   profileId?: string;
   profiles?: { id: string; label?: string }[];
