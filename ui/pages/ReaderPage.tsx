@@ -57,7 +57,7 @@ export function ReaderPage({
     enabled: !settings && !!account.session?.connected,
     session: account.session?.profileId,
     model: prefs.model,
-    view: settings ? "settings" : thread ? `story-${thread.item.id}` : sort,
+    view: thread ? `story-${thread.item.id}` : sort,
     onFailure: (status) => {
       if (status === "disconnected") account.refresh();
       notify(

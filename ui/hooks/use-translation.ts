@@ -29,6 +29,10 @@ export function useTranslation(jobs: Job[], { enabled, session, model, view, onF
   useEffect(() => {
     setBlocked("");
   }, [session, model]);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: A transient failure only blocks the current feed or story.
+  useEffect(() => {
+    setBlocked((status) => (status === "error" ? "" : status));
+  }, [view]);
   function translation(item: Item, field: Field) {
     return item[field === "title" ? "titleKo" : "textKo"] || texts.get(key(item, field));
   }
