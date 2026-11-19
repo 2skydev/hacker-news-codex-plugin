@@ -20,7 +20,7 @@ Codex 사이드바나 브라우저에서 Hacker News의 인기 글과 최신 글
 설치할 Mac에서 비공개 저장소를 읽을 수 있도록 GitHub 인증이 되어 있어야 합니다.
 
 1. Codex의 **플러그인 → 추가 → 마켓플레이스 추가**를 엽니다.
-2. **출처**에 `https://github.com/2skydev/hacker-news-codex-plugin.git`을 입력합니다. **Git ref**는 `main`으로 지정하고 **Sparse 경로**는 비워 둡니다.
+2. **출처**에 `2skydev/hacker-news-codex-plugin`을 입력합니다. **Git ref**와 **Sparse 경로**는 기본 값으로 비워둡니다.
 3. 마켓플레이스를 추가한 뒤 **Hacker News**를 설치합니다.
 4. 사이드바의 **… → Hacker News**에서 리더를 엽니다. [피드 직접 열기](codex://plugins/hacker-news@hacker-news-codex-plugin/app/open_reader)
 
@@ -46,7 +46,7 @@ npm start
 
 리더는 Hacker News 공식 API에서 글과 댓글을 가져오고, 번역할 텍스트를 OpenAI에 보냅니다. 설정과 번역 캐시는 기본적으로 `~/.local/share/hacker-news/`에 저장합니다. `HN_DATA_DIR`로 저장 경로를 바꿀 수 있습니다.
 
-ChatGPT 계정 연결 정보는 macOS 키체인에 저장합니다. 같은 데이터 경로를 사용하는 Codex와 브라우저가 연결을 공유합니다. 이전 버전에서 연결한 계정은 업데이트 후 다시 로그인해야 합니다.
+ChatGPT 계정 연결 정보는 macOS 키체인에 저장합니다. 같은 데이터 경로를 사용하는 Codex와 브라우저가 연결을 공유합니다.
 
 ## 개발
 
