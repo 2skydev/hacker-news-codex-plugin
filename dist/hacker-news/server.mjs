@@ -38234,7 +38234,7 @@ function toError(value) {
 }
 
 // shared/constants/plugin.constants.ts
-var PLUGIN_INFO = { name: "hacker-news", version: "0.3.10" };
+var PLUGIN_INFO = { name: "hacker-news", version: "0.3.11" };
 
 // server/reader-tools.ts
 init_settings_constants();
